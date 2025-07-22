@@ -13,10 +13,14 @@
                         'primary-green': '#28a745', /* Main button green */
                         'primary-green-hover': '#218838', /* Darker green on hover */
                         'soft-gray': '#f8f9fa', /* Lighter background for elements */
+                        'dark-blue-600': '#2563eb', /* A deeper blue for search/clear icons */
+                        'dark-gray-600': '#4b5563', /* A deeper gray for clear icons */
                     },
                     boxShadow: {
                         'custom-light': '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.08)',
                         'custom-medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'neumorphic': '6px 6px 12px #cbced1, -6px -6px 12px #ffffff', /* For sophisticated look */
+                        'neumorphic-inner': 'inset 6px 6px 12px #cbced1, inset -6px -6px 12px #ffffff',
                     }
                 }
             }
@@ -28,61 +32,199 @@
             background: conic-gradient(var(--tw-primary-blue) var(--progress, 0%), transparent var(--progress, 0%));
             transition: background 0.1s linear; /* Smooth transition for progress bar */
         }
+
+        /* Styles for sophisticated buttons */
+        .sophisticated-button {
+            border-radius: 9999px; /* Make it perfectly round */
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.1), -3px -3px 6px rgba(255,255,255,0.7); /* Soft shadow */
+            transition: all 0.2s ease-in-out;
+            border: none; /* Remove default border */
+            min-width: 60px; /* Consistent size */
+            min-height: 60px; /* Consistent size */
+            display: flex; /* Ensure flex for icon/text centering */
+            flex-direction: column; /* Stack icon and text */
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem; /* Smaller text */
+            padding: 0.5rem; /* Smaller padding */
+            cursor: pointer; /* Explicitly set cursor pointer */
+            position: relative; /* Needed for absolute positioning of progress overlay */
+            overflow: hidden; /* Hide overflow of progress overlay */
+        }
+
+        .sophisticated-button:hover {
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.1), -2px -2px 4px rgba(255,255,255,0.7); /* Smaller shadow on hover */
+        }
+
+        .sophisticated-button:active {
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.1), inset -1px -1px 2px rgba(255,255,255,0.7); /* Inner shadow on click */
+        }
+
+        .sophisticated-button .icon-small {
+            width: 2rem; /* Icon size */
+            height: 2rem; /* Icon size */
+            margin-bottom: 0.1rem; /* Spacing between icon and text */
+            position: relative; /* Ensure icon is above progress overlay */
+            z-index: 10; /* Bring icon to front */
+        }
+
+        .sophisticated-button span {
+            position: relative; /* Ensure text is above progress overlay */
+            z-index: 10; /* Bring text to front */
+        }
+
+        .sophisticated-button.green {
+            background-color: #e0f2e0; /* Light green background */
+            color: #28a745; /* Green text/icon */
+        }
+
+        .sophisticated-button.purple {
+            background-color: #efedfb; /* Light purple background */
+            color: #6d28d9; /* Deep purple text/icon */
+        }
+        .sophisticated-button.red { /* New style for clear all filters button */
+            background-color: #fcebeb; /* Light red background */
+            color: #dc3545; /* Red text/icon */
+        }
+
+
+        /* Custom styles for the dropdown with icon */
+        .select-wrapper {
+            position: relative;
+            display: inline-block; /* Ensure it takes only required width */
+        }
+
+        .select-wrapper select {
+            /* Hide default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 2.5rem; /* Make space for the custom icon */
+            background-image: none; /* Remove any default background image for arrow */
+        }
+
+        .select-wrapper::after {
+            content: '▼'; /* Unicode for a small downward-pointing triangle */
+            font-size: 0.75rem; /* Adjust size as needed */
+            color: #4b5563; /* Icon color */
+            position: absolute;
+            right: 0.75rem; /* Position from the right edge */
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none; /* Make sure clicks go through to the select */
+        }
     </style>
 </head>
 <body class="font-sans antialiased bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen flex items-center justify-center py-12">
 
-<div class="w-full max-w-5xl mx-auto p-8 bg-white shadow-custom-medium rounded-xl border border-gray-200">
+<div class="w-full max-w-6xl mx-auto p-8 bg-white shadow-custom-medium rounded-xl border border-gray-200">
 
-    <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">printers in the network</h2>
+    <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">Network Printer Management</h2>
 
     <div class="mb-8 p-6 bg-soft-gray border border-gray-200 rounded-lg shadow-sm">
-        <form th:action="@{/printers}" method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-            <div>
-                <label for="nameSearch" class="block text-sm font-semibold text-gray-700 mb-1">Search by Name:</label>
-                <input type="text" id="nameSearch" name="nameSearch" th:value="${nameSearch}" placeholder="e.g., Office Printer"
-                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+        <form id="filterForm" th:action="@{/printers}" method="get" class="grid grid-cols-1 gap-6 items-end lg:grid-cols-2">
+
+            <div class="lg:col-span-2"> <label for="searchTerm" class="block text-sm font-semibold text-gray-700 mb-1">Search:</label>
+                <div class="flex items-end gap-2"> <div class="relative flex-grow flex">
+                    <div class="select-wrapper">
+                        <select id="searchType" name="searchType"
+                                class="block w-fit p-2.5 border border-gray-300 rounded-l-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm">
+                            <option value="name" th:selected="${searchType == 'name' or searchType == null}">Name</option>
+                            <option value="ipAddress" th:selected="${searchType == 'ipAddress'}">IP Address</option>
+                        </select>
+                    </div>
+                    <input type="text" id="searchTerm" name="searchTerm" th:value="${searchTerm}" placeholder="Search by Name or IP"
+                           oninput="toggleClearButton('searchTerm')"
+                           class="flex-grow p-2.5 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm -ml-px"/>
+                </div>
+                    <button type="submit"
+                            class="flex-shrink-0 w-10 h-10 p-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150
+                                   flex items-center justify-center cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                    <button type="button" onclick="clearAndSubmit('searchTerm')"
+                            class="flex-shrink-0 w-10 h-10 p-2 bg-gray-500 text-white rounded-md shadow-md hover:bg-gray-600
+                                   focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150
+                                   flex items-center justify-center cursor-pointer"
+                            id="clearSearchTerm" th:style="${searchTerm != null and !searchTerm.isEmpty()} ? 'display: flex;' : 'display: none;'">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    <button type="button" onclick="clearAllFilters()"
+                            class="flex-shrink-0 w-10 h-10 p-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600
+                                   focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150
+                                   flex items-center justify-center cursor-pointer">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
             </div>
 
-            <div>
-                <label for="minToner" class="block text-sm font-semibold text-gray-700 mb-1">Min Toner Level (%):</label>
-                <input type="number" id="minToner" name="minToner" th:value="${minToner}" min="0" max="100"
-                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
-            </div>
+            <div class="lg:col-span-2 flex items-end gap-4 mt-2 lg:mt-0">
+                <div class="flex-grow">
+                    <label for="filterType" class="block text-sm font-semibold text-gray-700 mb-1">Filter:</label>
+                    <div class="relative flex">
+                        <div class="select-wrapper">
+                            <select id="filterType" name="filterType" onchange="toggleFilterInputs()"
+                                    class="block w-fit p-2.5 border border-gray-300 rounded-l-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm">
+                                <option value="none" th:selected="${filterType == 'none' or filterType == null}">None</option>
+                                <option value="toner" th:selected="${filterType == 'toner'}">Min Toner Level</option>
+                                <option value="pages" th:selected="${filterType == 'pages'}">Min Page Count</option>
+                                <option value="both" th:selected="${filterType == 'both'}">Toner & Pages</option>
+                            </select>
+                        </div>
+                        <div id="tonerInputContainer" class="flex-grow"
+                             th:classappend="${filterType == 'toner' or filterType == 'both'} ? 'block' : 'hidden'">
+                            <div class="relative">
+                                <input type="number" id="minToner" name="minToner" th:value="${minToner}" min="0" max="100"
+                                       placeholder="Min Toner %"
+                                       oninput="toggleClearButton('minToner')"
+                                       class="w-full p-2.5 pr-10 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm -ml-px"/>
+                                <button type="button" onclick="clearAndSubmit('minToner')"
+                                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
+                                        id="clearMinToner" th:style="${minToner != null} ? 'display: flex;' : 'display: none;'">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        </div>
 
-            <div>
-                <label for="minPages" class="block text-sm font-semibold text-gray-700 mb-1">Min Page Count:</label>
-                <input type="number" id="minPages" name="minPages" th:value="${minPages}" min="0"
-                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
-            </div>
+                        <div id="pagesInputContainer" class="flex-grow"
+                             th:classappend="${filterType == 'pages' or filterType == 'both'} ? 'block' : 'hidden'">
+                            <div class="relative">
+                                <input type="number" id="minPages" name="minPages" th:value="${minPages}" min="0"
+                                       placeholder="Min Page Count"
+                                       oninput="toggleClearButton('minPages')"
+                                       class="w-full p-2.5 pr-10 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm -ml-px"/>
+                                <button type="button" onclick="clearAndSubmit('minPages')"
+                                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
+                                        id="clearMinPages" th:style="${minPages != null} ? 'display: flex;' : 'display: none;'">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="col-span-1 md:col-span-2 lg:col-span-1 flex gap-4 mt-2 md:mt-0">
-                <button type="submit"
-                        class="flex-1 px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
-                    Apply Filters
+                <button type="submit" form="discoverForm" id="discoverButton"
+                        class="sophisticated-button green w-16 h-16">
+                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9.75 17.01M12 21.75C16.8913 21.75 20.75 17.8913 20.75 13C20.75 8.1087 16.8913 4.25 12 4.25C7.1087 4.25 3.25 8.1087 3.25 13C3.25 17.8913 7.1087 21.75 12 21.75ZM15.75 13C15.75 13.4142 15.4142 13.75 15 13.75H12.75V15.75C12.75 16.1642 12.4142 16.5 12 16.5C11.5858 16.5 11.25 16.1642 11.25 15.75V13.75H9C8.58579 13.75 8.25 13.4142 8.25 13C8.25 12.5858 8.58579 12.25 9 12.25H11.25V10C11.25 9.58579 11.5858 9.25 12 9.25C12.4142 9.25 12.75 9.58579 12.75 10V12.25H15C15.4142 12.25 15.75 12.5858 15.75 13Z"></path></svg>
+                    <span id="buttonText" class="relative z-10">Discover</span>
+                    <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
                 </button>
-                <button type="button" onclick="window.location.href='/printers'"
-                        class="flex-1 px-6 py-2.5 bg-gray-500 text-white font-semibold rounded-md shadow-md hover:bg-gray-600
-                               focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
-                    Clear Filters
+
+                <button type="submit" form="refreshAllForm"
+                        class="sophisticated-button purple w-16 h-16">
+                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h-.582m0 0l-1.355-1.355M4 9h5m7.632-4.474l1.355-1.355M16 4v5h.582m0 0l1.355-1.355M16 9h5m-2.474 4.474a8.001 8.001 0 00-11.056 0"></path>
+                    </svg>
+                    <span>Refresh All</span>
                 </button>
             </div>
         </form>
     </div>
 
-    <div class="my-8 flex items-center justify-center">
-        <form id="discoverForm" th:action="@{/discoverPrinters}" method="post">
-            <button type="submit" id="discoverButton"
-                    class="relative w-32 h-32 rounded-full bg-primary-green text-white font-extrabold text-lg shadow-custom-medium
-                           flex items-center justify-center border-4 border-white
-                           hover:bg-primary-green-hover focus:outline-none focus:ring-4 focus:ring-primary-green focus:ring-offset-2 focus:ring-offset-soft-gray
-                           transition-all duration-300 ease-in-out overflow-hidden transform hover:scale-105">
-                <span id="buttonText" class="relative z-10">More</span>
-                <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
-            </button>
-        </form>
-    </div>
+    <form id="discoverForm" th:action="@{/discoverPrinters}" method="post" class="hidden"></form>
+    <form id="refreshAllForm" th:action="@{/refreshPrinters}" method="post" class="hidden"></form>
+
 
     <table class="min-w-full border-collapse mt-8 rounded-lg overflow-hidden shadow-custom-light">
         <thead class="bg-gray-100 border-b-2 border-gray-200">
@@ -93,6 +235,7 @@
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Toner Level</th>
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Page Count</th>
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Last Refreshed</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
         </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
@@ -100,15 +243,25 @@
             <td th:text="${printer.id}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
             <td th:text="${printer.ipAddress}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800 font-mono"></td>
             <td th:text="${printer.name}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-            <td class:th="(${printer.tonerLevel} != null and ${printer.tonerLevel} &lt; 20) ? 'px-5 py-4 whitespace-nowrap text-sm font-bold text-red-500' : 'px-5 py-4 whitespace-nowrap text-sm text-gray-800'" th:text="${(printer.tonerLevel != null) ? (printer.tonerLevel + '%') : 'N/A'}"></td>
+            <td th:class="(${printer.tonerLevel} != null and ${printer.tonerLevel} &lt; 20) ? 'px-5 py-4 whitespace-nowrap text-sm font-bold text-red-500' : 'px-5 py-4 whitespace-nowrap text-sm text-gray-800'" th:text="${(printer.tonerLevel != null) ? (printer.tonerLevel + '%') : 'N/A'}"></td>
             <td th:text="${(printer.pageCount != null) ? #numbers.formatInteger(printer.pageCount, 0, 'POINT') : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
             <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
                 <span th:if="${printer.lastRefreshTime}" th:text="${#temporals.format(printer.lastRefreshTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
                 <span th:unless="${printer.lastRefreshTime}">N/A</span>
             </td>
+            <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-800">
+                <form th:action="@{/refreshPrinter}" method="post" class="inline-block">
+                    <input type="hidden" name="id" th:value="${printer.id}" />
+                    <button type="submit"
+                            class="px-3 py-1 bg-green-500 text-white rounded-md text-xs font-semibold hover:bg-green-600
+                                   focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                        Refresh
+                    </button>
+                </form>
+            </td>
         </tr>
         <tr th:if="${#lists.isEmpty(printers)}">
-            <td colspan="6" class="px-5 py-4 text-center text-gray-500 italic">No printers found. Click 'Discover' to scan your network!</td>
+            <td colspan="7" class="px-5 py-4 text-center text-gray-500 italic">No printers found. Click 'Discover' to scan your network!</td>
         </tr>
         </tbody>
     </table>
@@ -119,43 +272,55 @@
 
     const discoverForm = document.getElementById('discoverForm');
     const discoverButton = document.getElementById('discoverButton');
-    const buttonText = document.getElementById('buttonText');
-    const progressOverlay = document.getElementById('progressOverlay');
+    const buttonText = discoverButton ? discoverButton.querySelector('#buttonText') : null;
+    const progressOverlay = discoverButton ? discoverButton.querySelector('#progressOverlay') : null;
     let progressInterval;
 
-    discoverForm.addEventListener('submit', function(event) {
-        event.preventDefault();
+    if (discoverForm) {
+        discoverForm.addEventListener('submit', function(event) {
+            event.preventDefault();
 
-        discoverButton.disabled = true;
-        buttonText.textContent = '0%';
-        updateProgressBar(0);
+            if (discoverButton) discoverButton.disabled = true;
+            if (buttonText) buttonText.textContent = '0%';
+            updateProgressBar(0);
 
-        fetch(this.action, { method: this.method })
-            .then(response => {
-                if (response.ok) {
-                    progressInterval = setInterval(getDiscoveryProgress, 500);
-                } else {
-                    console.error('Failed to start discovery.');
-                    alert('Failed to start discovery. Check server logs.');
+            fetch(this.action, { method: this.method })
+                .then(response => {
+                    if (response.ok) {
+                        progressInterval = setInterval(getDiscoveryProgress, 500);
+                    } else {
+                        console.error('Failed to start discovery. Server responded with:', response.status);
+                        alert('Failed to start discovery. Check server logs for details.');
+                        resetDiscoveryUI();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error initiating discovery:', error);
+                    alert('An error occurred while starting discovery.');
                     resetDiscoveryUI();
-                }
-            })
-            .catch(error => {
-                console.error('Error starting discovery:', error);
-                alert('An error occurred while starting discovery.');
-                resetDiscoveryUI();
-            });
-    });
+                });
+        });
+    }
 
     function getDiscoveryProgress() {
         fetch('/discoveryProgress')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 const progress = data.progress;
                 const inProgress = data.inProgress;
 
                 updateProgressBar(progress);
-                buttonText.textContent = `${progress}%`;
+
+                if (discoverButton && discoverButton.disabled && buttonText) {
+                    if (inProgress || progress < 100) {
+                        buttonText.textContent = `${progress}%`;
+                    }
+                }
 
                 if (!inProgress && progress === 100) {
                     clearInterval(progressInterval);
@@ -170,242 +335,137 @@
             .catch(error => {
                 console.error('Error fetching discovery progress:', error);
                 clearInterval(progressInterval);
-                alert('An error occurred while fetching discovery progress.');
+                alert('An error occurred while fetching discovery progress. Check console for details.');
                 resetDiscoveryUI();
             });
     }
 
     function updateProgressBar(progress) {
-        progressOverlay.style.setProperty('--progress', `${progress}%`);
+        if (progressOverlay) {
+            progressOverlay.style.setProperty('--progress', `${progress}%`);
+        }
     }
 
     function resetDiscoveryUI() {
-        discoverButton.disabled = false;
-        buttonText.textContent = 'Discover';
+        if (discoverButton) discoverButton.disabled = false;
+        if (buttonText) {
+            buttonText.textContent = 'Discover';
+        }
         updateProgressBar(0);
         clearInterval(progressInterval);
     }
 
+    // --- New JavaScript for Filter Dropdown ---
+    function toggleFilterInputs() {
+        const filterType = document.getElementById('filterType').value;
+        const tonerInputContainer = document.getElementById('tonerInputContainer');
+        const pagesInputContainer = document.getElementById('pagesInputContainer');
+        const minTonerInput = document.getElementById('minToner');
+        const minPagesInput = document.getElementById('minPages');
+
+        tonerInputContainer.classList.add('hidden');
+        pagesInputContainer.classList.add('hidden');
+
+        // Clear values when hiding, to prevent submitting hidden values
+        minTonerInput.value = '';
+        minPagesInput.value = '';
+        toggleClearButton('minToner'); // Hide clear button for toner
+        toggleClearButton('minPages'); // Hide clear button for pages
+
+        if (filterType === 'toner') {
+            tonerInputContainer.classList.remove('hidden');
+        } else if (filterType === 'pages') {
+            pagesInputContainer.classList.remove('hidden');
+        } else if (filterType === 'both') {
+            tonerInputContainer.classList.remove('hidden');
+            pagesInputContainer.classList.remove('hidden');
+        }
+    }
+
+    // --- JavaScript for Filter Clear Buttons ---
+    function toggleClearButton(inputId) {
+        const inputElement = document.getElementById(inputId);
+        const clearButtonId = 'clear' + inputId.charAt(0).toUpperCase() + inputId.slice(1);
+        const clearButton = document.getElementById(clearButtonId);
+
+        if (inputElement && clearButton) {
+            // For searchTerm, check if value is not empty to show 'x' button
+            if (inputId === 'searchTerm') {
+                clearButton.style.display = (inputElement.value.trim() !== '') ? 'flex' : 'none';
+            } else { // For minToner and minPages, check if value is not empty (e.g., if filter is active and value is set)
+                clearButton.style.display = (inputElement.value !== '') ? 'flex' : 'none';
+            }
+        }
+    }
+
+    function clearAndSubmit(inputId) {
+        const inputElement = document.getElementById(inputId);
+        if (inputElement) {
+            inputElement.value = '';
+            // If clearing search term, reset search type to default (name)
+            if (inputId === 'searchTerm') {
+                document.getElementById('searchType').value = 'name';
+            }
+            toggleClearButton(inputId);
+            document.getElementById('filterForm')?.submit();
+        }
+    }
+
+    function clearAllFilters() {
+        document.getElementById('searchTerm').value = '';
+        document.getElementById('searchType').value = 'name';
+
+        document.getElementById('filterType').value = 'none'; // Reset filter dropdown
+        document.getElementById('minToner').value = '';
+        document.getElementById('minPages').value = '';
+
+        // Immediately hide the inputs and clear buttons without waiting for submit
+        toggleFilterInputs(); // Call to hide inputs and clear values
+        // Manually trigger toggleClearButton for searchTerm as its container changed
+        toggleClearButton('searchTerm');
+
+        document.getElementById('filterForm')?.submit();
+    }
+
+    // Initial check on page load for ongoing discovery and filter input visibility
     window.onload = function() {
         fetch('/discoveryProgress')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.inProgress) {
-                    discoverButton.disabled = true;
-                    buttonText.textContent = `${data.progress}%`;
+                    if (discoverButton) discoverButton.disabled = true;
+                    if (buttonText) {
+                        if (data.progress > 0 && data.progress < 100) {
+                            buttonText.textContent = `${data.progress}%`;
+                        } else if (data.progress === 0) {
+                            buttonText.textContent = 'Starting...';
+                        }
+                    }
                     updateProgressBar(data.progress);
                     progressInterval = setInterval(getDiscoveryProgress, 500);
                 } else {
                     resetDiscoveryUI();
                 }
             })
-            .catch(error => console.error('Error on initial progress check:', error));
+            .catch(error => {
+                console.error('Error on initial progress check:', error);
+                resetDiscoveryUI();
+            });
+
+        // Initialize clear buttons visibility and filter input visibility on load
+        document.getElementById('searchTerm')?.dispatchEvent(new Event('input'));
+        // Trigger toggleFilterInputs to set initial visibility based on th:selected value
+        toggleFilterInputs();
+        document.getElementById('minToner')?.dispatchEvent(new Event('input'));
+        document.getElementById('minPages')?.dispatchEvent(new Event('input'));
     };
 
     /*]]>*/
 </script>
 </body>
 </html>
-<!--
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Printer Details</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary-blue': '#007bff', /* Used for progress bar fill */
-                        'secondary-blue': '#4c95eb', /* A slightly lighter blue for some accents */
-                        'primary-green': '#28a745', /* Main button green */
-                        'primary-green-hover': '#218838', /* Darker green on hover */
-                        'soft-gray': '#f8f9fa', /* Lighter background for elements */
-                    },
-                    boxShadow: {
-                        'custom-light': '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.08)',
-                        'custom-medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .progress-gradient {
-            background: conic-gradient(var(&#45;&#45;tw-primary-blue) var(&#45;&#45;progress, 0%), transparent var(&#45;&#45;progress, 0%));
-            transition: background 0.1s linear;
-        }
-    </style>
-</head>
-<body class="font-sans antialiased bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen flex items-center justify-center py-12">
-
-<div class="w-full max-w-5xl mx-auto p-8 bg-white shadow-custom-medium rounded-xl border border-gray-200">
-
-    <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">available printers in the network</h2>
-
-    <div class="mb-8 p-6 bg-soft-gray border border-gray-200 rounded-lg shadow-sm">
-        <form th:action="@{/printers}" method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-            <div>
-                <label for="nameSearch" class="block text-sm font-semibold text-gray-700 mb-1">Search by Name:</label>
-                <input type="text" id="nameSearch" name="nameSearch" th:value="${nameSearch}" placeholder="e.g., Office Printer"
-                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
-            </div>
-
-            <div>
-                <label for="minToner" class="block text-sm font-semibold text-gray-700 mb-1">Min Toner Level (%):</label>
-                <input type="number" id="minToner" name="minToner" th:value="${minToner}" min="0" max="100"
-                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
-            </div>
-
-            <div>
-                <label for="minPages" class="block text-sm font-semibold text-gray-700 mb-1">Min Page Count:</label>
-                <input type="number" id="minPages" name="minPages" th:value="${minPages}" min="0"
-                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
-            </div>
-
-            <div class="col-span-1 md:col-span-2 lg:col-span-1 flex gap-4 mt-2 md:mt-0">
-                <button type="submit"
-                        class="flex-1 px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
-                    Apply Filters
-                </button>
-                <button type="button" onclick="window.location.href='/printers'"
-                        class="flex-1 px-6 py-2.5 bg-gray-500 text-white font-semibold rounded-md shadow-md hover:bg-gray-600
-                               focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
-                    Clear Filters
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <div class="my-8 flex items-center justify-center">
-        <form id="discoverForm" th:action="@{/discoverPrinters}" method="post">
-            <button type="submit" id="discoverButton"
-                    class="relative w-32 h-32 rounded-full bg-primary-green text-white font-extrabold text-lg shadow-custom-medium
-                           flex items-center justify-center border-4 border-white
-                           hover:bg-primary-green-hover focus:outline-none focus:ring-4 focus:ring-primary-green focus:ring-offset-2 focus:ring-offset-soft-gray
-                           transition-all duration-300 ease-in-out overflow-hidden transform hover:scale-105">
-                <span id="buttonText" class="relative z-10">more</span>
-                <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
-            </button>
-        </form>
-    </div>
-
-    <table class="min-w-full border-collapse mt-8 rounded-lg overflow-hidden shadow-custom-light">
-        <thead class="bg-gray-100 border-b-2 border-gray-200">
-        <tr>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">IP Address</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Toner Level</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Page Count</th>
-        </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-        <tr th:each="printer : ${printers}" class="bg-white hover:bg-gray-50 transition duration-150 ease-in-out">
-            <td th:text="${printer.id}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-            <td th:text="${printer.ipAddress}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800 font-mono"></td>
-            <td th:text="${printer.name}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-            <td class:th="(${printer.tonerLevel} &lt; 20) ? 'px-5 py-4 whitespace-nowrap text-sm font-bold text-red-500' : 'px-5 py-4 whitespace-nowrap text-sm text-gray-800'" th:text="${(printer.tonerLevel != null) ? (printer.tonerLevel + '%') : 'N/A'}"></td>
-            <td th:text="${(printer.pageCount != null) ? #numbers.formatInteger(printer.pageCount, 0, 'POINT') : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-        </tr>
-        <tr th:if="${#lists.isEmpty(printers)}">
-            <td colspan="5" class="px-5 py-4 text-center text-gray-500 italic">No printers found. Click 'Discover' to scan your network!</td>
-        </tr>
-        </tbody>
-    </table>
-</div>
-
-<script th:inline="javascript">
-    /*<![CDATA[*/
-
-    const discoverForm = document.getElementById('discoverForm');
-    const discoverButton = document.getElementById('discoverButton');
-    const buttonText = document.getElementById('buttonText');
-    const progressOverlay = document.getElementById('progressOverlay');
-    let progressInterval;
-
-    discoverForm.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        discoverButton.disabled = true;
-        buttonText.textContent = '0%';
-        updateProgressBar(0);
-
-        fetch(this.action, { method: this.method })
-            .then(response => {
-                if (response.ok) {
-                    progressInterval = setInterval(getDiscoveryProgress, 500);
-                } else {
-                    console.error('Failed to start discovery.');
-                    alert('Failed to start discovery. Check server logs.');
-                    resetDiscoveryUI();
-                }
-            })
-            .catch(error => {
-                console.error('Error starting discovery:', error);
-                alert('An error occurred while starting discovery.');
-                resetDiscoveryUI();
-            });
-    });
-
-    function getDiscoveryProgress() {
-        fetch('/discoveryProgress')
-            .then(response => response.json())
-            .then(data => {
-                const progress = data.progress;
-                const inProgress = data.inProgress;
-
-                updateProgressBar(progress);
-                buttonText.textContent = `${progress}%`;
-
-                if (!inProgress && progress === 100) {
-                    clearInterval(progressInterval);
-                    console.log('Discovery complete. Refreshing table...');
-                    window.location.href = '/printers';
-                } else if (!inProgress && progress < 100) {
-                    clearInterval(progressInterval);
-                    console.log('Discovery completed prematurely. Refreshing table...');
-                    window.location.href = '/printers';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching discovery progress:', error);
-                clearInterval(progressInterval);
-                alert('An error occurred while fetching discovery progress.');
-                resetDiscoveryUI();
-            });
-    }
-
-    function updateProgressBar(progress) {
-        progressOverlay.style.setProperty('&#45;&#45;progress', `${progress}%`);
-    }
-
-    function resetDiscoveryUI() {
-        discoverButton.disabled = false;
-        buttonText.textContent = 'Discover';
-        updateProgressBar(0);
-        clearInterval(progressInterval);
-    }
-
-    window.onload = function() {
-        fetch('/discoveryProgress')
-            .then(response => response.json())
-            .then(data => {
-                if (data.inProgress) {
-                    discoverButton.disabled = true;
-                    buttonText.textContent = `${data.progress}%`;
-                    updateProgressBar(data.progress);
-                    progressInterval = setInterval(getDiscoveryProgress, 500);
-                } else {
-                    resetDiscoveryUI();
-                }
-            })
-            .catch(error => console.error('Error on initial progress check:', error));
-    };
-
-    /*]]>*/
-</script>
-</body>
-</html>-->

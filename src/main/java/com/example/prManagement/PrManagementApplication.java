@@ -1,4 +1,3 @@
-// src/main/java/com/example/prManagement/PrManagementApplication.java
 package com.example.prManagement;
 
 import org.springframework.boot.SpringApplication;
@@ -12,5 +11,4 @@ public class PrManagementApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(PrManagementApplication.class, args);
 	}
-
 }
