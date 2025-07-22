@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Printer Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#007bff', /* Used for progress bar fill */
+                        'secondary-blue': '#4c95eb', /* A slightly lighter blue for some accents */
+                        'primary-green': '#28a745', /* Main button green */
+                        'primary-green-hover': '#218838', /* Darker green on hover */
+                        'soft-gray': '#f8f9fa', /* Lighter background for elements */
+                    },
+                    boxShadow: {
+                        'custom-light': '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.08)',
+                        'custom-medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* This style is dynamically updated by JavaScript for the circular progress */
+        .progress-gradient {
+            background: conic-gradient(var(--tw-primary-blue) var(--progress, 0%), transparent var(--progress, 0%));
+            transition: background 0.1s linear; /* Smooth transition for progress bar */
+        }
+    </style>
+</head>
+<body class="font-sans antialiased bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen flex items-center justify-center py-12">
+
+<div class="w-full max-w-5xl mx-auto p-8 bg-white shadow-custom-medium rounded-xl border border-gray-200">
+
+    <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">printers in the network</h2>
+
+    <div class="mb-8 p-6 bg-soft-gray border border-gray-200 rounded-lg shadow-sm">
+        <form th:action="@{/printers}" method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+            <div>
+                <label for="nameSearch" class="block text-sm font-semibold text-gray-700 mb-1">Search by Name:</label>
+                <input type="text" id="nameSearch" name="nameSearch" th:value="${nameSearch}" placeholder="e.g., Office Printer"
+                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+            </div>
+
+            <div>
+                <label for="minToner" class="block text-sm font-semibold text-gray-700 mb-1">Min Toner Level (%):</label>
+                <input type="number" id="minToner" name="minToner" th:value="${minToner}" min="0" max="100"
+                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+            </div>
+
+            <div>
+                <label for="minPages" class="block text-sm font-semibold text-gray-700 mb-1">Min Page Count:</label>
+                <input type="number" id="minPages" name="minPages" th:value="${minPages}" min="0"
+                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+            </div>
+
+            <div class="col-span-1 md:col-span-2 lg:col-span-1 flex gap-4 mt-2 md:mt-0">
+                <button type="submit"
+                        class="flex-1 px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
+                    Apply Filters
+                </button>
+                <button type="button" onclick="window.location.href='/printers'"
+                        class="flex-1 px-6 py-2.5 bg-gray-500 text-white font-semibold rounded-md shadow-md hover:bg-gray-600
+                               focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
+                    Clear Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="my-8 flex items-center justify-center">
+        <form id="discoverForm" th:action="@{/discoverPrinters}" method="post">
+            <button type="submit" id="discoverButton"
+                    class="relative w-32 h-32 rounded-full bg-primary-green text-white font-extrabold text-lg shadow-custom-medium
+                           flex items-center justify-center border-4 border-white
+                           hover:bg-primary-green-hover focus:outline-none focus:ring-4 focus:ring-primary-green focus:ring-offset-2 focus:ring-offset-soft-gray
+                           transition-all duration-300 ease-in-out overflow-hidden transform hover:scale-105">
+                <span id="buttonText" class="relative z-10">More</span>
+                <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
+            </button>
+        </form>
+    </div>
+
+    <table class="min-w-full border-collapse mt-8 rounded-lg overflow-hidden shadow-custom-light">
+        <thead class="bg-gray-100 border-b-2 border-gray-200">
+        <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">IP Address</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Toner Level</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Page Count</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Last Refreshed</th>
+        </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+        <tr th:each="printer : ${printers}" class="bg-white hover:bg-gray-50 transition duration-150 ease-in-out">
+            <td th:text="${printer.id}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
+            <td th:text="${printer.ipAddress}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800 font-mono"></td>
+            <td th:text="${printer.name}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
+            <td class:th="(${printer.tonerLevel} != null and ${printer.tonerLevel} &lt; 20) ? 'px-5 py-4 whitespace-nowrap text-sm font-bold text-red-500' : 'px-5 py-4 whitespace-nowrap text-sm text-gray-800'" th:text="${(printer.tonerLevel != null) ? (printer.tonerLevel + '%') : 'N/A'}"></td>
+            <td th:text="${(printer.pageCount != null) ? #numbers.formatInteger(printer.pageCount, 0, 'POINT') : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
+            <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
+                <span th:if="${printer.lastRefreshTime}" th:text="${#temporals.format(printer.lastRefreshTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                <span th:unless="${printer.lastRefreshTime}">N/A</span>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(printers)}">
+            <td colspan="6" class="px-5 py-4 text-center text-gray-500 italic">No printers found. Click 'Discover' to scan your network!</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    const discoverForm = document.getElementById('discoverForm');
+    const discoverButton = document.getElementById('discoverButton');
+    const buttonText = document.getElementById('buttonText');
+    const progressOverlay = document.getElementById('progressOverlay');
+    let progressInterval;
+
+    discoverForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        discoverButton.disabled = true;
+        buttonText.textContent = '0%';
+        updateProgressBar(0);
+
+        fetch(this.action, { method: this.method })
+            .then(response => {
+                if (response.ok) {
+                    progressInterval = setInterval(getDiscoveryProgress, 500);
+                } else {
+                    console.error('Failed to start discovery.');
+                    alert('Failed to start discovery. Check server logs.');
+                    resetDiscoveryUI();
+                }
+            })
+            .catch(error => {
+                console.error('Error starting discovery:', error);
+                alert('An error occurred while starting discovery.');
+                resetDiscoveryUI();
+            });
+    });
+
+    function getDiscoveryProgress() {
+        fetch('/discoveryProgress')
+            .then(response => response.json())
+            .then(data => {
+                const progress = data.progress;
+                const inProgress = data.inProgress;
+
+                updateProgressBar(progress);
+                buttonText.textContent = `${progress}%`;
+
+                if (!inProgress && progress === 100) {
+                    clearInterval(progressInterval);
+                    console.log('Discovery complete. Refreshing table...');
+                    window.location.href = '/printers';
+                } else if (!inProgress && progress < 100) {
+                    clearInterval(progressInterval);
+                    console.log('Discovery completed prematurely. Refreshing table...');
+                    window.location.href = '/printers';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching discovery progress:', error);
+                clearInterval(progressInterval);
+                alert('An error occurred while fetching discovery progress.');
+                resetDiscoveryUI();
+            });
+    }
+
+    function updateProgressBar(progress) {
+        progressOverlay.style.setProperty('--progress', `${progress}%`);
+    }
+
+    function resetDiscoveryUI() {
+        discoverButton.disabled = false;
+        buttonText.textContent = 'Discover';
+        updateProgressBar(0);
+        clearInterval(progressInterval);
+    }
+
+    window.onload = function() {
+        fetch('/discoveryProgress')
+            .then(response => response.json())
+            .then(data => {
+                if (data.inProgress) {
+                    discoverButton.disabled = true;
+                    buttonText.textContent = `${data.progress}%`;
+                    updateProgressBar(data.progress);
+                    progressInterval = setInterval(getDiscoveryProgress, 500);
+                } else {
+                    resetDiscoveryUI();
+                }
+            })
+            .catch(error => console.error('Error on initial progress check:', error));
+    };
+
+    /*]]>*/
+</script>
+</body>
+</html>
+<!--
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Printer Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#007bff', /* Used for progress bar fill */
+                        'secondary-blue': '#4c95eb', /* A slightly lighter blue for some accents */
+                        'primary-green': '#28a745', /* Main button green */
+                        'primary-green-hover': '#218838', /* Darker green on hover */
+                        'soft-gray': '#f8f9fa', /* Lighter background for elements */
+                    },
+                    boxShadow: {
+                        'custom-light': '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.08)',
+                        'custom-medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .progress-gradient {
+            background: conic-gradient(var(&#45;&#45;tw-primary-blue) var(&#45;&#45;progress, 0%), transparent var(&#45;&#45;progress, 0%));
+            transition: background 0.1s linear;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen flex items-center justify-center py-12">
+
+<div class="w-full max-w-5xl mx-auto p-8 bg-white shadow-custom-medium rounded-xl border border-gray-200">
+
+    <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">available printers in the network</h2>
+
+    <div class="mb-8 p-6 bg-soft-gray border border-gray-200 rounded-lg shadow-sm">
+        <form th:action="@{/printers}" method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+            <div>
+                <label for="nameSearch" class="block text-sm font-semibold text-gray-700 mb-1">Search by Name:</label>
+                <input type="text" id="nameSearch" name="nameSearch" th:value="${nameSearch}" placeholder="e.g., Office Printer"
+                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+            </div>
+
+            <div>
+                <label for="minToner" class="block text-sm font-semibold text-gray-700 mb-1">Min Toner Level (%):</label>
+                <input type="number" id="minToner" name="minToner" th:value="${minToner}" min="0" max="100"
+                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+            </div>
+
+            <div>
+                <label for="minPages" class="block text-sm font-semibold text-gray-700 mb-1">Min Page Count:</label>
+                <input type="number" id="minPages" name="minPages" th:value="${minPages}" min="0"
+                       class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+            </div>
+
+            <div class="col-span-1 md:col-span-2 lg:col-span-1 flex gap-4 mt-2 md:mt-0">
+                <button type="submit"
+                        class="flex-1 px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
+                    Apply Filters
+                </button>
+                <button type="button" onclick="window.location.href='/printers'"
+                        class="flex-1 px-6 py-2.5 bg-gray-500 text-white font-semibold rounded-md shadow-md hover:bg-gray-600
+                               focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 transform hover:scale-105">
+                    Clear Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="my-8 flex items-center justify-center">
+        <form id="discoverForm" th:action="@{/discoverPrinters}" method="post">
+            <button type="submit" id="discoverButton"
+                    class="relative w-32 h-32 rounded-full bg-primary-green text-white font-extrabold text-lg shadow-custom-medium
+                           flex items-center justify-center border-4 border-white
+                           hover:bg-primary-green-hover focus:outline-none focus:ring-4 focus:ring-primary-green focus:ring-offset-2 focus:ring-offset-soft-gray
+                           transition-all duration-300 ease-in-out overflow-hidden transform hover:scale-105">
+                <span id="buttonText" class="relative z-10">more</span>
+                <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
+            </button>
+        </form>
+    </div>
+
+    <table class="min-w-full border-collapse mt-8 rounded-lg overflow-hidden shadow-custom-light">
+        <thead class="bg-gray-100 border-b-2 border-gray-200">
+        <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">IP Address</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Toner Level</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Page Count</th>
+        </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+        <tr th:each="printer : ${printers}" class="bg-white hover:bg-gray-50 transition duration-150 ease-in-out">
+            <td th:text="${printer.id}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
+            <td th:text="${printer.ipAddress}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800 font-mono"></td>
+            <td th:text="${printer.name}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
+            <td class:th="(${printer.tonerLevel} &lt; 20) ? 'px-5 py-4 whitespace-nowrap text-sm font-bold text-red-500' : 'px-5 py-4 whitespace-nowrap text-sm text-gray-800'" th:text="${(printer.tonerLevel != null) ? (printer.tonerLevel + '%') : 'N/A'}"></td>
+            <td th:text="${(printer.pageCount != null) ? #numbers.formatInteger(printer.pageCount, 0, 'POINT') : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(printers)}">
+            <td colspan="5" class="px-5 py-4 text-center text-gray-500 italic">No printers found. Click 'Discover' to scan your network!</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    const discoverForm = document.getElementById('discoverForm');
+    const discoverButton = document.getElementById('discoverButton');
+    const buttonText = document.getElementById('buttonText');
+    const progressOverlay = document.getElementById('progressOverlay');
+    let progressInterval;
+
+    discoverForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        discoverButton.disabled = true;
+        buttonText.textContent = '0%';
+        updateProgressBar(0);
+
+        fetch(this.action, { method: this.method })
+            .then(response => {
+                if (response.ok) {
+                    progressInterval = setInterval(getDiscoveryProgress, 500);
+                } else {
+                    console.error('Failed to start discovery.');
+                    alert('Failed to start discovery. Check server logs.');
+                    resetDiscoveryUI();
+                }
+            })
+            .catch(error => {
+                console.error('Error starting discovery:', error);
+                alert('An error occurred while starting discovery.');
+                resetDiscoveryUI();
+            });
+    });
+
+    function getDiscoveryProgress() {
+        fetch('/discoveryProgress')
+            .then(response => response.json())
+            .then(data => {
+                const progress = data.progress;
+                const inProgress = data.inProgress;
+
+                updateProgressBar(progress);
+                buttonText.textContent = `${progress}%`;
+
+                if (!inProgress && progress === 100) {
+                    clearInterval(progressInterval);
+                    console.log('Discovery complete. Refreshing table...');
+                    window.location.href = '/printers';
+                } else if (!inProgress && progress < 100) {
+                    clearInterval(progressInterval);
+                    console.log('Discovery completed prematurely. Refreshing table...');
+                    window.location.href = '/printers';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching discovery progress:', error);
+                clearInterval(progressInterval);
+                alert('An error occurred while fetching discovery progress.');
+                resetDiscoveryUI();
+            });
+    }
+
+    function updateProgressBar(progress) {
+        progressOverlay.style.setProperty('&#45;&#45;progress', `${progress}%`);
+    }
+
+    function resetDiscoveryUI() {
+        discoverButton.disabled = false;
+        buttonText.textContent = 'Discover';
+        updateProgressBar(0);
+        clearInterval(progressInterval);
+    }
+
+    window.onload = function() {
+        fetch('/discoveryProgress')
+            .then(response => response.json())
+            .then(data => {
+                if (data.inProgress) {
+                    discoverButton.disabled = true;
+                    buttonText.textContent = `${data.progress}%`;
+                    updateProgressBar(data.progress);
+                    progressInterval = setInterval(getDiscoveryProgress, 500);
+                } else {
+                    resetDiscoveryUI();
+                }
+            })
+            .catch(error => console.error('Error on initial progress check:', error));
+    };
+
+    /*]]>*/
+</script>
+</body>
+</html>-->
