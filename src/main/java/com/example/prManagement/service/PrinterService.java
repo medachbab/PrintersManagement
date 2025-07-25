@@ -17,6 +17,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+// Apache POI imports for Excel export
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayOutputStream;
+
+
 @Service
 public class PrinterService {
 
@@ -40,195 +49,153 @@ public class PrinterService {
 
         for (Printer printer : printers) {
             executor.submit(() -> {
-                updatePrinterSnmpData(printer);
+                try {
+                    // Refresh printer data using SNMP
+                    String name = snmpService.getPrinterName(printer.getIpAddress());
+                    String serialNumber = snmpService.getSerialNumber(printer.getIpAddress());
+                    String manufacturer= snmpService.getManufacturer(printer.getIpAddress());
+                    String model= snmpService.getModel(printer.getIpAddress()); // Retrieve model first
+
+                    if (name != null) {
+                        printer.setName(name);
+                    }
+                    if (serialNumber != null) {
+                        printer.setSerialNumber(serialNumber);
+                    }
+                    if (manufacturer != null) {
+                        printer.setManufacturer(manufacturer);
+                    }
+                    if (model != null) {
+                        printer.setModel(model);
+                    }
+
+
+                    Integer tonerLevel = snmpService.getTonerLevel(printer.getIpAddress(), printer.getModel());
+                    if (tonerLevel != null) {
+                        printer.setTonerLevel(tonerLevel);
+                    }
+                    Integer pageCount = snmpService.getPageCount(printer.getIpAddress(), printer.getModel());
+                    if (pageCount != null) {
+                        printer.setPageCount(pageCount);
+                    }
+
+                    printer.setLastRefreshTime(LocalDateTime.now());
+                    printerRepository.save(printer);
+                    System.out.println("Refreshed printer: " + printer.getIpAddress());
+                } catch (Exception e) {
+                    System.err.println("Error refreshing printer " + printer.getIpAddress() + ": " + e.getMessage());
+                }
             });
         }
+
         executor.shutdown();
         try {
-            executor.awaitTermination(5, TimeUnit.MINUTES);
+            executor.awaitTermination(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             System.err.println("Printer refresh interrupted: " + e.getMessage());
             Thread.currentThread().interrupt();
         } finally {
             refreshInProgress = false;
-            System.out.println("All existing printers update attempt complete.");
+            System.out.println("All existing printer data refresh complete.");
         }
-        return printers;
+        return printerRepository.findAll();
     }
 
-    @Async
-    public void refreshSinglePrinter(Long printerId) {
-        System.out.println("Starting refresh for printer ID: " + printerId);
-        Optional<Printer> optionalPrinter = printerRepository.findById(printerId);
-        if (optionalPrinter.isPresent()) {
-            Printer printer = optionalPrinter.get();
-            updatePrinterSnmpData(printer);
-            System.out.println("Finished refresh for printer ID: " + printerId);
-        } else {
-            System.err.println("Printer with ID " + printerId + " not found for refresh.");
-        }
-    }
-
-    private void updatePrinterSnmpData(Printer printer) {
-        try {
-            InetAddress inetAddress = InetAddress.getByName(printer.getIpAddress());
-            if (inetAddress.isReachable(1000)) {
+    public void refreshSinglePrinter(Long id) {
+        Optional<Printer> printerOptional = printerRepository.findById(id);
+        printerOptional.ifPresent(printer -> {
+            try {
                 String name = snmpService.getPrinterName(printer.getIpAddress());
-                Integer toner = snmpService.getTonerLevel(printer.getIpAddress());
-                Integer pageCount = snmpService.getPageCount(printer.getIpAddress());
+                String serialNumber = snmpService.getSerialNumber(printer.getIpAddress());
+                String manufacturer= snmpService.getManufacturer(printer.getIpAddress());
+                String model= snmpService.getModel(printer.getIpAddress());
 
-                boolean updated = false;
-                if (name != null && !name.equals(printer.getName())) {
+                if (name != null) {
                     printer.setName(name);
-                    updated = true;
                 }
-                if (toner != null && !toner.equals(printer.getTonerLevel())) {
-                    printer.setTonerLevel(toner);
-                    updated = true;
+                if (serialNumber != null) {
+                    printer.setSerialNumber(serialNumber);
                 }
-                if (pageCount != null && !pageCount.equals(printer.getPageCount())) {
+                if (manufacturer != null) {
+                    printer.setManufacturer(manufacturer);
+                }
+                if (model != null) {
+                    printer.setModel(model);
+                }
+
+
+                Integer tonerLevel = snmpService.getTonerLevel(printer.getIpAddress(), printer.getModel());
+                if (tonerLevel != null) {
+                    printer.setTonerLevel(tonerLevel);
+                }
+                Integer pageCount = snmpService.getPageCount(printer.getIpAddress(), printer.getModel());
+                if (pageCount != null) {
                     printer.setPageCount(pageCount);
-                    updated = true;
                 }
 
-                if (printer.getLastRefreshTime() == null || !LocalDateTime.now().equals(printer.getLastRefreshTime()) || updated) {
-                    printer.setLastRefreshTime(LocalDateTime.now());
-                    updated = true;
-                }
-
-                if (updated) {
-                    printerRepository.save(printer);
-                    System.out.println("Updated printer: " + printer.getName() + " at " + printer.getIpAddress() + " (Last Refreshed: " + printer.getLastRefreshTime() + ")");
-                } else {
-                    System.out.println("Printer: " + printer.getIpAddress() + " data and last refresh time unchanged.");
-                }
-            } else {
-                System.out.println("Printer at " + printer.getIpAddress() + " is not reachable for update. Skipping SNMP data refresh.");
+                printer.setLastRefreshTime(LocalDateTime.now());
+                printerRepository.save(printer);
+                System.out.println("Refreshed single printer: " + printer.getIpAddress());
+            } catch (Exception e) {
+                System.err.println("Error refreshing single printer " + printer.getIpAddress() + ": " + e.getMessage());
             }
-        } catch (IOException e) {
-            System.err.println("Network error while updating printer " + printer.getIpAddress() + ": " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("SNMP error while updating printer " + printer.getIpAddress() + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    public List<Printer> getFilteredPrinters(String searchTerm, String searchType, String filterType, Integer minToner, Integer minPages) {
-        System.out.println("Applying filters at DB level. Search Term: '" + searchTerm + "' (Type: " + searchType + "), Filter Type: " + filterType + ", Min Toner: " + minToner + ", Min Pages: " + minPages);
-
-        boolean hasSearchTerm = searchTerm != null && !searchTerm.trim().isEmpty();
-
-        boolean applyMinToner = false;
-        boolean applyMinPages = false;
-
-        if ("toner".equals(filterType) && minToner != null) {
-            applyMinToner = true;
-        } else if ("pages".equals(filterType) && minPages != null) {
-            applyMinPages = true;
-        } else if ("both".equals(filterType) && minToner != null && minPages != null) {
-            applyMinToner = true;
-            applyMinPages = true;
-        }
-
-
-        String nameSearch = null;
-        String ipAddressSearch = null;
-
-        if (hasSearchTerm) {
-            if ("name".equals(searchType)) {
-                nameSearch = searchTerm.trim();
-            } else if ("ipAddress".equals(searchType)) {
-                ipAddressSearch = searchTerm.trim();
-            }
-        }
-
-
-        if (nameSearch != null && ipAddressSearch != null) {
-            if (applyMinToner && applyMinPages) {
-                return printerRepository.findByNameContainingIgnoreCaseAndIpAddressContainingAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(nameSearch, ipAddressSearch, minToner, minPages);
-            } else if (applyMinToner) {
-                return printerRepository.findByNameContainingIgnoreCaseAndIpAddressContainingAndTonerLevelGreaterThanEqual(nameSearch, ipAddressSearch, minToner);
-            } else if (applyMinPages) {
-                return printerRepository.findByNameContainingIgnoreCaseAndIpAddressContainingAndPageCountGreaterThanEqual(nameSearch, ipAddressSearch, minPages);
-            } else {
-                return printerRepository.findByNameContainingIgnoreCaseAndIpAddressContaining(nameSearch, ipAddressSearch);
-            }
-        } else if (nameSearch != null) {
-            if (applyMinToner && applyMinPages) {
-                return printerRepository.findByNameContainingIgnoreCaseAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(nameSearch, minToner, minPages);
-            } else if (applyMinToner) {
-                return printerRepository.findByNameContainingIgnoreCaseAndTonerLevelGreaterThanEqual(nameSearch, minToner);
-            } else if (applyMinPages) {
-                return printerRepository.findByNameContainingIgnoreCaseAndPageCountGreaterThanEqual(nameSearch, minPages);
-            } else {
-                return printerRepository.findByNameContainingIgnoreCase(nameSearch);
-            }
-        } else if (ipAddressSearch != null) {
-            if (applyMinToner && applyMinPages) {
-                return printerRepository.findByIpAddressContainingAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(ipAddressSearch, minToner, minPages);
-            } else if (applyMinToner) {
-                return printerRepository.findByIpAddressContainingAndTonerLevelGreaterThanEqual(ipAddressSearch, minToner);
-            } else if (applyMinPages) {
-                return printerRepository.findByIpAddressContainingAndPageCountGreaterThanEqual(ipAddressSearch, minPages);
-            } else {
-                return printerRepository.findByIpAddressContaining(ipAddressSearch);
-            }
-        } else { // No name or IP search term, only toner/page count or none (just filter)
-            if (applyMinToner && applyMinPages) {
-                return printerRepository.findByTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(minToner, minPages);
-            } else if (applyMinToner) {
-                return printerRepository.findByTonerLevelGreaterThanEqual(minToner);
-            } else if (applyMinPages) {
-                return printerRepository.findByPageCountGreaterThanEqual(minPages);
-            } else {
-                System.out.println("No filters applied. Returning all printers from DB.");
-                return printerRepository.findAll();
-            }
-        }
+        });
     }
 
     @Async
     public void discoverAndAddPrinters(String subnetPrefix, int startIp, int endIp) {
-        System.out.println("Starting network discovery for subnet: " + subnetPrefix + startIp + "-" + endIp);
+        if (discoveryInProgress) {
+            System.out.println("Discovery already in progress. Please wait.");
+            return;
+        }
 
-        totalIpsToScan = endIp - startIp + 1;
-        ipsScannedCount.set(0);
         discoveryInProgress = true;
-
-        int timeout = 1000;
-
-        List<String> existingIps = printerRepository.findAll().stream()
-                .map(Printer::getIpAddress)
-                .collect(Collectors.toList());
+        ipsScannedCount.set(0);
+        totalIpsToScan = endIp - startIp + 1;
+        System.out.println("Starting network discovery for subnet: " + subnetPrefix);
 
         ExecutorService executor = Executors.newFixedThreadPool(20);
 
         for (int i = startIp; i <= endIp; i++) {
-            final String ipAddress = subnetPrefix + i;
+            String ipAddress = subnetPrefix + i;
             executor.submit(() -> {
                 try {
                     ipsScannedCount.incrementAndGet();
                     InetAddress inetAddress = InetAddress.getByName(ipAddress);
+                    if (inetAddress.isReachable(1000)) { // 1-second timeout
+                        String name = snmpService.getPrinterName(ipAddress);
+                        if (name != null) {
+                            Optional<Printer> existingPrinter = printerRepository.findByIpAddress(ipAddress);
+                            if (existingPrinter.isEmpty()) {
+                                Printer newPrinter = new Printer();
+                                newPrinter.setIpAddress(ipAddress);
+                                newPrinter.setName(name);
+                                // Retrieve model before getting toner level and page count
+                                String model = snmpService.getModel(ipAddress);
+                                newPrinter.setModel(model);
 
-                    if (inetAddress.isReachable(timeout)) {
-                        if (!existingIps.contains(ipAddress)) {
-                            try {
-                                String name = snmpService.getPrinterName(ipAddress);
-                                if (name != null && !name.isEmpty()) {
-                                    System.out.println("Found new printer at " + ipAddress + " (Name: " + name + ")");
-                                    Printer newPrinter = new Printer();
-                                    newPrinter.setIpAddress(ipAddress);
-                                    newPrinter.setName(name);
-                                    newPrinter.setTonerLevel(snmpService.getTonerLevel(ipAddress));
-                                    newPrinter.setPageCount(snmpService.getPageCount(ipAddress));
-                                    newPrinter.setLastRefreshTime(LocalDateTime.now());
-                                    printerRepository.save(newPrinter);
-                                } else {
-                                    System.out.println("IP " + ipAddress + " is reachable, but not responding to printer SNMP OID or returned empty name.");
-                                }
-                            } catch (Exception snmpEx) {
-                                System.err.println("SNMP data retrieval error for new printer at " + ipAddress + ": " + snmpEx.getClass().getSimpleName() + " - " + snmpEx.getMessage());
-                                snmpEx.printStackTrace();
+                                newPrinter.setTonerLevel(snmpService.getTonerLevel(ipAddress, model));
+                                newPrinter.setPageCount(snmpService.getPageCount(ipAddress, model));
+                                newPrinter.setSerialNumber(snmpService.getSerialNumber(ipAddress));
+                                newPrinter.setManufacturer(snmpService.getManufacturer(ipAddress));
+                                newPrinter.setLastRefreshTime(LocalDateTime.now());
+                                printerRepository.save(newPrinter);
+                                System.out.println("Discovered and added printer: " + newPrinter.getName() + " at " + newPrinter.getIpAddress());
+                            } else {
+                                System.out.println("Printer already exists: " + ipAddress);
+                                // Optionally, update existing printer data here as well
+                                Printer printer = existingPrinter.get();
+                                printer.setName(name);
+                                // Retrieve model before getting toner level and page count
+                                String model = snmpService.getModel(ipAddress);
+                                printer.setModel(model);
+
+                                printer.setTonerLevel(snmpService.getTonerLevel(ipAddress, model));
+                                printer.setPageCount(snmpService.getPageCount(ipAddress, model));
+                                printer.setSerialNumber(snmpService.getSerialNumber(ipAddress));
+                                printer.setManufacturer(snmpService.getManufacturer(ipAddress));
+                                printer.setLastRefreshTime(LocalDateTime.now());
+                                printerRepository.save(printer);
                             }
                         }
                     }
@@ -267,6 +234,105 @@ public class PrinterService {
     }
 
     public boolean isDiscoveryInProgress() {
-        return discoveryInProgress || refreshInProgress;
+        return discoveryInProgress;
+    }
+
+    public List<Printer> getFilteredPrinters(String searchTerm, String searchType, String filterType, Integer minToner, Integer minPages) {
+        List<Printer> printers = printerRepository.findAll(); // Start with all printers
+
+
+        if (searchTerm != null && !searchTerm.isEmpty()) {
+            String lowerCaseSearchTerm = searchTerm.toLowerCase();
+            if ("name".equals(searchType)) {
+                printers = printers.stream()
+                        .filter(p -> p.getName() != null && p.getName().toLowerCase().contains(lowerCaseSearchTerm))
+                        .collect(Collectors.toList());
+            }
+            else if ("ipAddress".equals(searchType)) {
+                printers = printers.stream()
+                        .filter(p -> p.getIpAddress() != null && p.getIpAddress().contains(lowerCaseSearchTerm))
+                        .collect(Collectors.toList());
+            }
+            else if ("manufacturer".equals(searchType)) {
+                printers = printers.stream()
+                        .filter(p -> p.getManufacturer() != null && p.getManufacturer().toLowerCase().contains(lowerCaseSearchTerm))
+                        .collect(Collectors.toList());
+            }
+            else if ("model".equals(searchType)) {
+                printers = printers.stream()
+                        .filter(p -> p.getModel() != null && p.getModel().toLowerCase().contains(lowerCaseSearchTerm))
+                        .collect(Collectors.toList());
+            }
+            else if ("serialNumber".equals(searchType)) {
+                printers = printers.stream()
+                        .filter(p -> p.getSerialNumber() != null && p.getSerialNumber().toLowerCase().contains(lowerCaseSearchTerm))
+                        .collect(Collectors.toList());
+            }
+        }
+
+        if ("lowToner".equals(filterType)) {
+            printers = printers.stream()
+                    .filter(p -> p.getTonerLevel() != null && p.getTonerLevel() < 20) // Example threshold
+                    .collect(Collectors.toList());
+        } else if ("highPageCount".equals(filterType)) {
+            printers = printers.stream()
+                    .filter(p -> p.getPageCount() != null && p.getPageCount() > 10000) // Example threshold
+                    .collect(Collectors.toList());
+        }
+
+        if (minToner != null) {
+            printers = printers.stream()
+                    .filter(p -> p.getTonerLevel() != null && p.getTonerLevel() >= minToner)
+                    .collect(Collectors.toList());
+        }
+        if (minPages != null) {
+            printers = printers.stream()
+                    .filter(p -> p.getPageCount() != null && p.getPageCount() >= minPages)
+                    .collect(Collectors.toList());
+        }
+
+        return printers;
+    }
+
+    public byte[] exportPrintersToExcel() throws IOException {
+        List<Printer> printers = printerRepository.findAll();
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Printers");
+
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"ID", "IP Address", "Name", "Toner Level", "Page Count", "Last Refresh Time"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            int rowNum = 1;
+            for (Printer printer : printers) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(printer.getId());
+                row.createCell(1).setCellValue(printer.getIpAddress());
+                row.createCell(2).setCellValue(printer.getName());
+                if (printer.getTonerLevel() != null) {
+                    row.createCell(3).setCellValue(printer.getTonerLevel());
+                } else {
+                    row.createCell(3).setCellValue("N/A");
+                }
+                if (printer.getPageCount() != null) {
+                    row.createCell(4).setCellValue(printer.getPageCount());
+                } else {
+                    row.createCell(4).setCellValue("N/A");
+                }
+                if (printer.getLastRefreshTime() != null) {
+                    row.createCell(5).setCellValue(printer.getLastRefreshTime().toString());
+                } else {
+                    row.createCell(5).setCellValue("N/A");
+                }
+            }
+
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
     }
 }

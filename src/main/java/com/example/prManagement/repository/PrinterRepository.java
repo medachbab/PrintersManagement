@@ -1,14 +1,17 @@
+// src/main/java/com/example/prManagement/repository/PrinterRepository.java
 package com.example.prManagement.repository;
 
 import com.example.prManagement.model.Printer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PrinterRepository extends JpaRepository<Printer, Long> {
+    Optional<Printer> findByIpAddress(String ipAddress);
 
-    List<Printer> findByNameContainingIgnoreCaseAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(
+    /*List<Printer> findByNameContainingIgnoreCaseAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(
             String name, Integer minToner, Integer minPages);
 
     List<Printer> findByNameContainingIgnoreCase(String name);
@@ -27,6 +30,12 @@ public interface PrinterRepository extends JpaRepository<Printer, Long> {
     // Search by IP Address (partial match)
     List<Printer> findByIpAddressContaining(String ipAddress);
 
+
+    // New search methods
+    List<Printer> findBySerialNumberContainingIgnoreCase(String serialNumber);
+    List<Printer> findByManufacturerContainingIgnoreCase(String manufacturer);
+    List<Printer> findByModelContainingIgnoreCase(String model);
+
     // Combinations including IP Address search
     List<Printer> findByNameContainingIgnoreCaseAndIpAddressContaining(String name, String ipAddress);
     List<Printer> findByIpAddressContainingAndTonerLevelGreaterThanEqual(String ipAddress, Integer minToner);
@@ -39,6 +48,6 @@ public interface PrinterRepository extends JpaRepository<Printer, Long> {
     List<Printer> findByIpAddressContainingAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(
             String ipAddress, Integer minToner, Integer minPages);
     List<Printer> findByNameContainingIgnoreCaseAndIpAddressContainingAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(
-            String name, String ipAddress, Integer minToner, Integer minPages);
+            String name, String ipAddress, Integer minToner, Integer minPages);*/
 
 }

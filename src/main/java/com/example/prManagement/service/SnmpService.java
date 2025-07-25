@@ -7,11 +7,12 @@ import org.snmp4j.TransportMapping;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.Address;
-import org.snmp4j.smi.GenericAddress;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
+import org.snmp4j.smi.UdpAddress;
+
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -19,65 +20,59 @@ import java.io.IOException;
 @Service
 public class SnmpService {
 
-    // Name OID:
+    // Printer Name OID:
     private static final OID SYS_NAME_OID = new OID("1.3.6.1.2.1.1.5.0");
-    // description OID
+    // Alternative description OID:
     private static final OID HR_DEVICE_DESCR_OID = new OID("1.3.6.1.2.1.25.3.2.1.3.1");
 
-    // prtMarkerLifeCount:
-    private static final OID PRT_MARKER_LIFE_COUNT_OID = new OID("1.3.6.1.2.1.43.8.2.1.10.1.1");
+    // OID for printer toner level for general printers (percentage because full capacity=100)
+    private static final OID GENERIC_TONER_PERCENTAGE_OID = new OID("1.3.6.1.2.1.43.11.1.1.9.1.1");
+    // OID for actual toner level for specific printers like Kyocera
+    private static final OID KYOCERA_TONER_LEVEL_ACTUAL_OID = new OID("1.3.6.1.2.1.43.11.1.1.9.1.1");
+    // OID for full toner capacity for specific printers like Kyocera
+    private static final OID KYOCERA_TONER_LEVEL_CAPACITY_OID = new OID("1.3.6.1.2.1.43.11.1.1.8.1.1");
 
-    // Page Count OID:
-    private static final OID PAGE_COUNT_OID = new OID("1.3.6.1.2.1.43.10.2.1.4.1.1");
+
+    // Serial Number OID
+    private static final OID SERIAL_NUMBER_OID = new OID("1.3.6.1.2.1.43.5.1.1.17.1");
+
+    // Manufacturer OID
+    private static final OID MANUFACTURER_OID = new OID("1.3.6.1.2.1.43.5.1.1.16.1");
+
+    // Model OID
+    private static final OID MODEL_OID = new OID("1.3.6.1.2.1.25.3.2.1.3.1");
 
 
-    private static final int SNMP_PORT = 161;
-    private static final String COMMUNITY_STRING = "public";
 
     private String getSnmpValue(String ipAddress, OID oid) {
         Snmp snmp = null;
         try {
+            Address targetAddress = new UdpAddress(ipAddress + "/161");
+
+            CommunityTarget target = new CommunityTarget();
+            target.setCommunity(new OctetString("public"));
+            target.setAddress(targetAddress);
+            target.setRetries(2);
+            target.setTimeout(1500);
+            target.setVersion(SnmpConstants.version2c);
+
             TransportMapping transport = new DefaultUdpTransportMapping();
             snmp = new Snmp(transport);
             transport.listen();
-
-            CommunityTarget target = new CommunityTarget();
-            target.setCommunity(new OctetString(COMMUNITY_STRING));
-            target.setAddress(GenericAddress.parse("udp:" + ipAddress + "/" + SNMP_PORT));
-            target.setRetries(1); // Number of retries
-            target.setTimeout(1000); // Timeout in milliseconds
-            target.setVersion(SnmpConstants.version2c); // Use SNMP v2c
 
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(oid));
             pdu.setType(PDU.GET);
 
             ResponseEvent responseEvent = snmp.send(pdu, target);
-            if (responseEvent != null) {
-                PDU responsePDU = responseEvent.getResponse();
-                if (responsePDU != null) {
-                    if (responsePDU.getErrorStatus() == PDU.noError) {
-                        VariableBinding vb = responsePDU.getVariableBindings().firstElement();
-                        if (vb != null && vb.getOid().equals(oid)) {
-                            // debug infos
-                            System.out.println("SNMP Debug: Retrieved OID " + oid + " for " + ipAddress + ". Value: " + vb.getVariable().toString());
-                            return vb.getVariable().toString();
-                        } else if (vb != null) {
-                            System.err.println("SNMP: OID mismatch or not found for " + ipAddress + ". Requested " + oid + ", got " + vb.getOid() + " with value " + vb.getVariable());
-                        }
-                    } else {
-                        System.err.println("SNMP Error for " + ipAddress + " OID " + oid + ": " + responsePDU.getErrorStatusText());
-                    }
-                } else {
-                    System.err.println("SNMP No response PDU for " + ipAddress + " OID " + oid);
+            if (responseEvent != null && responseEvent.getResponse() != null) {
+                VariableBinding vb = responseEvent.getResponse().get(0);
+                if (vb != null && vb.getOid().equals(oid)) {
+                    return vb.getVariable().toString();
                 }
-            } else {
-                System.err.println("SNMP Request timed out for " + ipAddress + " OID " + oid);
             }
         } catch (IOException e) {
-            System.err.println("SNMP IOException for " + ipAddress + " OID " + oid + ": " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("SNMP Unexpected error for " + ipAddress + " OID " + oid + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            System.err.println("Error during SNMP request to " + ipAddress + ": " + e.getMessage());
         } finally {
             if (snmp != null) {
                 try {
@@ -91,9 +86,8 @@ public class SnmpService {
     }
 
     public String getPrinterName(String ipAddress) {
-        // Try sysName first, then hrDeviceDescr as a fallback
         String name = getSnmpValue(ipAddress, SYS_NAME_OID);
-        if (name == null || name.isEmpty() || name.equals("null")) {
+        if (name == null || name.isEmpty() || name.equals("null")) { // If sysName is empty or "null", try hrDeviceDescr
             name = getSnmpValue(ipAddress, HR_DEVICE_DESCR_OID);
         }
         if (name != null && name.equals("null")) { // Handle "null" as string from some agents
@@ -102,30 +96,105 @@ public class SnmpService {
         return name;
     }
 
-    public Integer getTonerLevel(String ipAddress) {
-        String value = getSnmpValue(ipAddress, PRT_MARKER_LIFE_COUNT_OID);
-        if (value != null && !value.isEmpty()) {
-            try {
-                return Integer.parseInt(value);
-            } catch (NumberFormatException e) {
-                System.err.println("Could not parse toner level '" + value + "' for " + ipAddress + ". " + e.getMessage());
+    public Integer getTonerLevel(String ipAddress, String model) {
+        if (model != null && model.toLowerCase().contains("ecosys p3145dn")) {
+            String actualValueStr = getSnmpValue(ipAddress, KYOCERA_TONER_LEVEL_ACTUAL_OID);
+            String capacityValueStr = getSnmpValue(ipAddress, KYOCERA_TONER_LEVEL_CAPACITY_OID);
+
+            if (actualValueStr != null && !actualValueStr.isEmpty() &&
+                    capacityValueStr != null && !capacityValueStr.isEmpty()) {
+                try {
+                    Integer actual = Integer.parseInt(actualValueStr);
+                    Integer capacity = Integer.parseInt(capacityValueStr);
+
+                    if (capacity > 0) {
+                        return (int) Math.round(((double) actual / capacity) * 100);
+                    } else {
+                        System.err.println("ERROR: Toner capacity is zero for " + ipAddress + " (Model: " + model + "). Cannot calculate percentage.");
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("ERROR: Could not parse toner actual/capacity values for " + ipAddress + " (Model: " + model + "). " + e.getMessage());
+                }
+            } else {
+                System.err.println("No valid actual or capacity toner values received for " + ipAddress + " (Model: " + model + ").");
             }
+            return null;
+        } else {
+            String value = getSnmpValue(ipAddress, GENERIC_TONER_PERCENTAGE_OID);
+            if (value != null && !value.isEmpty()) {
+                try {
+                    return Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    System.err.println("ERROR: Could not parse toner level '" + value + "' for " + ipAddress + ". " + e.getMessage());
+                }
+            }
+            System.err.println("No valid toner level received for " + ipAddress + ".");
+            return null;
         }
-        return null;
     }
 
-    public Integer getPageCount(String ipAddress) {
-        String value = getSnmpValue(ipAddress, PAGE_COUNT_OID);
+
+    public Integer getPageCount(String ipAddress, String model) {
+        OID pageCountOid = null;
+
+        if (model != null) {
+            if (model.toLowerCase().contains("hp laserjet pro m404dn") || model.toLowerCase().contains("hp laserjet pro m501dn")) {
+                pageCountOid = new OID("1.3.6.1.2.1.43.10.2.1.4.1.1");
+            } else if (model.toLowerCase().contains("ecosys p3145dn")) {
+                pageCountOid = new OID("1.3.6.1.2.1.43.10.2.1.4");
+            } else if (model.toLowerCase().contains("hp laserjet m406")) {
+                pageCountOid = new OID("1.3.6.1.4.1.11.2.3.9.4.2.1.1.16.4.1.1.2.0");
+            }/*else {
+                pageCountOid = new OID("1.3.6.1.2.1.43.10.2.1.4.1.1");
+            }*/
+        }
+
+        if (pageCountOid == null) {
+            System.err.println("WARNING: No specific page count OID found for model '" + model + "'. Returning null.");
+            return null;
+        }
+
+        String value = getSnmpValue(ipAddress, pageCountOid);
         if (value != null && !value.isEmpty()) {
             try {
                 Integer count = Integer.parseInt(value);
-                System.out.println("Page count successfully parsed for " + ipAddress + ": " + count);
+                System.out.println("Page count successfully parsed for " + ipAddress + " (Model: " + model + ") with OID " + pageCountOid + ": " + count);
                 return count;
             } catch (NumberFormatException e) {
-                System.err.println("ERROR: Could not parse page count '" + value + "' for " + ipAddress + " from OID " + PAGE_COUNT_OID + ". " + e.getMessage());
+                System.err.println("ERROR: Could not parse page count '" + value + "' for " + ipAddress + " from OID " + pageCountOid + ". " + e.getMessage());
             }
         }
-        System.err.println("No valid page count value retrieved or parsed for " + ipAddress + " from OID " + PAGE_COUNT_OID + ".");
+        System.err.println("No valid page count received for " + ipAddress + " (Model: " + model + ") from OID " + pageCountOid + " or value was null/empty.");
         return null;
+    }
+
+    /**
+     * Retrieves the printer serial number using SNMP.
+     *
+     * @param ipAddress The IP address of the printer.
+     * @return The printer's serial number as a String, or null if not found.
+     */
+    public String getSerialNumber(String ipAddress) {
+        String name = getSnmpValue(ipAddress, SERIAL_NUMBER_OID);
+        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+            name = null;
+        }
+        return name;
+    }
+
+    public String getManufacturer(String ipAddress) {
+        String name = getSnmpValue(ipAddress, MANUFACTURER_OID);
+        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+            name = null;
+        }
+        return name;
+    }
+
+    public String getModel(String ipAddress) {
+        String name = getSnmpValue(ipAddress, MODEL_OID);
+        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+            name = null;
+        }
+        return name;
     }
 }

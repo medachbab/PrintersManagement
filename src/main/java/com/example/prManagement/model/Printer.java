@@ -16,6 +16,24 @@ public class Printer {
     private Integer tonerLevel;
     private Integer pageCount;
     private LocalDateTime lastRefreshTime;
+    private String serialNumber; // New field
+    private String manufacturer; // New field
+    private String model;        // New field
+
+    public Printer() {
+    }
+
+    public Printer(String ipAddress, String name, Integer tonerLevel, Integer pageCount,
+                   String serialNumber, String manufacturer, String model) {
+        this.ipAddress = ipAddress;
+        this.name = name;
+        this.tonerLevel = tonerLevel;
+        this.pageCount = pageCount;
+        this.lastRefreshTime = LocalDateTime.now();
+        this.serialNumber = serialNumber;
+        this.manufacturer = manufacturer;
+        this.model = model;
+    }
 
 
     public Long getId() {
@@ -66,6 +84,30 @@ public class Printer {
         this.lastRefreshTime = lastRefreshTime;
     }
 
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
+
+    public String getManufacturer() {
+        return manufacturer;
+    }
+
+    public void setManufacturer(String manufacturer) {
+        this.manufacturer = manufacturer;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
     @Override
     public String toString() {
         return "Printer{" +
@@ -75,6 +117,9 @@ public class Printer {
                 ", tonerLevel=" + tonerLevel +
                 ", pageCount=" + pageCount +
                 ", lastRefreshTime=" + lastRefreshTime +
+                ", serialNumber='" + serialNumber + '\'' +
+                ", manufacturer='" + manufacturer + '\'' +
+                ", model='" + model + '\'' +
                 '}';
     }
 }

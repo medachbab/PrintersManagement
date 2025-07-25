@@ -2,6 +2,7 @@ package com.example.prManagement.controller;
 
 import com.example.prManagement.model.Printer;
 import com.example.prManagement.service.PrinterService;
+import jakarta.servlet.http.HttpServletResponse; // Import HttpServletResponse
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,6 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -43,7 +48,7 @@ public class PrinterController {
 
     @PostMapping("/discoverPrinters")
     public String discoverPrinters(RedirectAttributes redirectAttributes) {
-        String subnetPrefix = "127.0.0.";//this network will be adjusted based on the production network
+        String subnetPrefix = "10.50.95.";//this network will be adjusted based on the production network
         int startIp = 1;
         int endIp = 254;
 
@@ -73,5 +78,19 @@ public class PrinterController {
         int progress = printerService.getDiscoveryProgressPercentage();
         boolean inProgress = printerService.isDiscoveryInProgress();
         return Map.of("progress", progress, "inProgress", inProgress);
+    }
+
+    @GetMapping("/printers/download/excel")
+    public void downloadPrintersExcel(HttpServletResponse response) throws IOException {
+        response.setContentType("application/octet-stream");
+        DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+        String currentDateTime = dateFormatter.format(new Date());
+
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=printers_" + currentDateTime + ".xlsx";
+        response.setHeader(headerKey, headerValue);
+
+        byte[] excelBytes = printerService.exportPrintersToExcel();
+        response.getOutputStream().write(excelBytes);
     }
 }
