@@ -16,13 +16,12 @@ public class Printer {
     private Integer tonerLevel;
     private Integer pageCount;
     private LocalDateTime lastRefreshTime;
-    private String serialNumber; // New field
-    private String manufacturer; // New field
-    private String model;        // New field
+    private String serialNumber;
+    private String manufacturer;
+    private String model;
 
     public Printer() {
     }
-
     public Printer(String ipAddress, String name, Integer tonerLevel, Integer pageCount,
                    String serialNumber, String manufacturer, String model) {
         this.ipAddress = ipAddress;

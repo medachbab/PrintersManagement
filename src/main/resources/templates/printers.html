@@ -39,17 +39,16 @@
             box-shadow: 3px 3px 6px rgba(0,0,0,0.1), -3px -3px 6px rgba(255,255,255,0.7); /* Soft shadow */
             transition: all 0.2s ease-in-out;
             border: none; /* Remove default border */
-            min-width: 60px; /* Consistent size */
-            min-height: 60px; /* Consistent size */
+            width: 60px; /* Consistent size */
+            height: 60px; /* Consistent size */
             display: flex; /* Ensure flex for icon/text centering */
-            flex-direction: column; /* Stack icon and text */
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem; /* Smaller text */
             padding: 0.5rem; /* Smaller padding */
             cursor: pointer; /* Explicitly set cursor pointer */
             position: relative; /* Needed for absolute positioning of progress overlay */
             overflow: hidden; /* Hide overflow of progress overlay */
+            /* Removed flex-direction: column and font-size as text is now outside */
         }
 
         .sophisticated-button:hover {
@@ -63,14 +62,19 @@
         .sophisticated-button .icon-small {
             width: 2rem; /* Icon size */
             height: 2rem; /* Icon size */
-            margin-bottom: 0.1rem; /* Spacing between icon and text */
+            /* Removed margin-bottom as text is now outside */
             position: relative; /* Ensure icon is above progress overlay */
             z-index: 10; /* Bring icon to front */
         }
 
-        .sophisticated-button span {
-            position: relative; /* Ensure text is above progress overlay */
-            z-index: 10; /* Bring text to front */
+        /* The text is now a separate span below the button */
+        .button-label {
+            font-size: 0.75rem; /* Smaller text for labels */
+            font-weight: 600; /* Semibold */
+            color: #4a5568; /* A nice gray color */
+            margin-top: 0.5rem; /* Space between button and text */
+            text-align: center;
+            line-height: 1; /* Compact line height */
         }
 
         .sophisticated-button.green {
@@ -119,6 +123,56 @@
 <div class="w-full max-w-full mx-auto p-8 bg-white shadow-custom-medium rounded-xl border border-gray-200">
 
     <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">Network Printer Management</h2>
+
+    <div class="flex flex-wrap items-end justify-center gap-6 mb-8 px-6 py-4 bg-soft-gray rounded-lg shadow-sm border border-gray-200">
+
+        <div class="flex flex-col items-start gap-1">
+            <label for="subnetPart1" class="block text-sm font-semibold text-gray-700 mb-1">Subnet Prefix (e.g., 192.168.1.)</label>
+            <div class="flex space-x-1">
+                <input type="number" id="subnetPart1" name="subnetPart1" value="10" min="1" max="255"
+                       class="p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm w-16 text-center"
+                       placeholder="1-255"/>
+                <span class="p-2.5 text-gray-600">.</span>
+                <input type="number" id="subnetPart2" name="subnetPart2" value="50" min="1" max="255"
+                       class="p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm w-16 text-center"
+                       placeholder="1-255"/>
+                <span class="p-2.5 text-gray-600">.</span>
+                <input type="number" id="subnetPart3" name="subnetPart3" value="95" min="1" max="255"
+                       class="p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm w-16 text-center"
+                       placeholder="1-255"/>
+                <span class="p-2.5 text-gray-600">.</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center">
+            <button type="submit" form="discoverForm" id="discoverButton"
+                    class="sophisticated-button green">
+                <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9.75 17.01M12 21.75C16.8913 21.75 20.75 17.8913 20.75 13C20.75 8.1087 16.8913 4.25 12 4.25C7.1087 4.25 3.25 8.1087 3.25 13C3.25 17.8913 7.1087 21.75 12 21.75ZM15.75 13C15.75 13.4142 15.4142 13.75 15 13.75H12.75V15.75C12.75 16.1642 12.4142 16.5 12 16.5C11.5858 16.5 11.25 16.1642 11.25 15.75V13.75H9C8.58579 13.75 8.25 13.4142 8.25 13C8.25 12.5858 8.58579 12.25 9 12.25H11.25V10C11.25 9.58579 11.5858 9.25 12 9.25C12.4142 9.25 12.75 9.58579 12.75 10V12.25H15C15.4142 12.25 15.75 12.5858 15.75 13Z"></path></svg>
+                <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
+            </button>
+            <span id="buttonText" class="button-label text-gray-700">Discover</span>
+        </div>
+
+        <div class="flex flex-col items-center">
+            <button type="submit" form="refreshAllForm"
+                    class="sophisticated-button purple">
+                <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h-.582m0 0l-1.355-1.355M4 9h5m7.632-4.474l1.355-1.355M16 4v5h.582m0 0l1.355-1.355M16 9h5m-2.474 4.474a8.001 8.001 0 00-11.056 0"></path>
+                </svg>
+            </button>
+            <span class="button-label text-gray-700">Refresh All</span>
+        </div>
+
+        <div class="flex flex-col items-center">
+            <a href="/printers/download/excel"
+               class="sophisticated-button green" style="text-decoration: none;">
+                <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 10.5v6m0 0l-3-3m3 3l3-3m-9 3h6m-9-1.5a4.5 4.5 0 01-1.414 3.182A4.5 4.5 0 019 19.5h6a4.5 4.5 0 011.414-.414M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
+                </svg>
+            </a>
+            <span class="button-label text-gray-700">Export</span>
+        </div>
+    </div>
 
     <div class="mb-8 p-6 bg-soft-gray border border-gray-200 rounded-lg shadow-sm">
         <form id="filterForm" th:action="@{/printers}" method="get" class="grid grid-cols-1 gap-6 items-end lg:grid-cols-2">
@@ -205,29 +259,6 @@
                         </div>
                     </div>
                 </div>
-
-                <button type="submit" form="discoverForm" id="discoverButton"
-                        class="sophisticated-button green w-16 h-16">
-                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9.75 17.01M12 21.75C16.8913 21.75 20.75 17.8913 20.75 13C20.75 8.1087 16.8913 4.25 12 4.25C7.1087 4.25 3.25 8.1087 3.25 13C3.25 17.8913 7.1087 21.75 12 21.75ZM15.75 13C15.75 13.4142 15.4142 13.75 15 13.75H12.75V15.75C12.75 16.1642 12.4142 16.5 12 16.5C11.5858 16.5 11.25 16.1642 11.25 15.75V13.75H9C8.58579 13.75 8.25 13.4142 8.25 13C8.25 12.5858 8.58579 12.25 9 12.25H11.25V10C11.25 9.58579 11.5858 9.25 12 9.25C12.4142 9.25 12.75 9.58579 12.75 10V12.25H15C15.4142 12.25 15.75 12.5858 15.75 13Z"></path></svg>
-                    <span id="buttonText" class="relative z-10">Discover</span>
-                    <div id="progressOverlay" class="absolute inset-0 rounded-full progress-gradient z-0"></div>
-                </button>
-
-                <button type="submit" form="refreshAllForm"
-                        class="sophisticated-button purple w-16 h-16">
-                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h-.582m0 0l-1.355-1.355M4 9h5m7.632-4.474l1.355-1.355M16 4v5h.582m0 0l1.355-1.355M16 9h5m-2.474 4.474a8.001 8.001 0 00-11.056 0"></path>
-                    </svg>
-                    <span>Refresh All</span>
-                </button>
-
-                <a href="/printers/download/excel"
-                   class="sophisticated-button green w-16 h-16" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
-                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 10.5v6m0 0l-3-3m3 3l3-3m-9 3h6m-9-1.5a4.5 4.5 0 01-1.414 3.182A4.5 4.5 0 019 19.5h6a4.5 4.5 0 011.414-.414M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
-                    </svg>
-                    <span>Export</span>
-                </a>
             </div>
         </form>
     </div>
@@ -269,6 +300,11 @@
                     <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-800">
                         <form th:action="@{/refreshPrinter}" method="post" class="inline-block">
                             <input type="hidden" name="id" th:value="${printer.id}" />
+                            <input type="hidden" name="searchTerm" th:value="${searchTerm}" />
+                            <input type="hidden" name="searchType" th:value="${searchType}" />
+                            <input type="hidden" name="filterType" th:value="${filterType}" />
+                            <input type="hidden" name="minToner" th:value="${minToner}" />
+                            <input type="hidden" name="minPages" th:value="${minPages}" />
                             <button type="submit"
                                     class="px-3 py-1 bg-green-500 text-white rounded-md text-xs font-semibold hover:bg-green-600
                                            focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
@@ -291,7 +327,7 @@
 
     const discoverForm = document.getElementById('discoverForm');
     const discoverButton = document.getElementById('discoverButton');
-    const buttonText = discoverButton ? discoverButton.querySelector('#buttonText') : null;
+    const buttonText = document.getElementById('buttonText'); // Now targets the span *outside* the button
     const progressOverlay = discoverButton ? discoverButton.querySelector('#progressOverlay') : null;
     let progressInterval;
 
@@ -299,11 +335,31 @@
         discoverForm.addEventListener('submit', function(event) {
             event.preventDefault();
 
+            // Get values from the three subnet parts
+            const subnetPart1 = document.getElementById('subnetPart1').value;
+            const subnetPart2 = document.getElementById('subnetPart2').value;
+            const subnetPart3 = document.getElementById('subnetPart3').value;
+
+            // Validate subnet parts
+            if (!isValidSubnetPart(subnetPart1) || !isValidSubnetPart(subnetPart2) || !isValidSubnetPart(subnetPart3)) {
+                alert('Please enter valid numbers between 1 and 255 for all subnet parts.');
+                return;
+            }
+
+            // Construct the subnet prefix
+            const subnetPrefix = `${subnetPart1}.${subnetPart2}.${subnetPart3}.`;
+
             if (discoverButton) discoverButton.disabled = true;
-            if (buttonText) buttonText.textContent = '0%';
+            if (buttonText) buttonText.textContent = '0%'; // Update the external span
             updateProgressBar(0);
 
-            fetch(this.action, { method: this.method })
+            const formData = new FormData();
+            formData.append('subnetPrefix', subnetPrefix); // Append the constructed subnetPrefix
+
+            fetch(this.action, {
+                method: this.method,
+                body: formData
+            })
                 .then(response => {
                     if (response.ok) {
                         progressInterval = setInterval(getDiscoveryProgress, 500);
@@ -319,6 +375,11 @@
                     resetDiscoveryUI();
                 });
         });
+    }
+
+    function isValidSubnetPart(value) {
+        const num = parseInt(value, 10);
+        return !isNaN(num) && num >= 1 && num <= 255;
     }
 
     function getDiscoveryProgress() {
@@ -437,6 +498,11 @@
         document.getElementById('filterType').value = 'none'; // Reset filter dropdown
         document.getElementById('minToner').value = '';
         document.getElementById('minPages').value = '';
+
+        // Reset subnet inputs
+        document.getElementById('subnetPart1').value = '10';
+        document.getElementById('subnetPart2').value = '50';
+        document.getElementById('subnetPart3').value = '95';
 
         // Immediately hide the inputs and clear buttons without waiting for submit
         toggleFilterInputs(); // Call to hide inputs and clear values

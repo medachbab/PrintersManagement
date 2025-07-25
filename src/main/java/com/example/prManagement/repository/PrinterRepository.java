@@ -40,7 +40,6 @@ public interface PrinterRepository extends JpaRepository<Printer, Long> {
     List<Printer> findByNameContainingIgnoreCaseAndIpAddressContaining(String name, String ipAddress);
     List<Printer> findByIpAddressContainingAndTonerLevelGreaterThanEqual(String ipAddress, Integer minToner);
     List<Printer> findByIpAddressContainingAndPageCountGreaterThanEqual(String ipAddress, Integer minPages);
-
     List<Printer> findByNameContainingIgnoreCaseAndIpAddressContainingAndTonerLevelGreaterThanEqual(
             String name, String ipAddress, Integer minToner);
     List<Printer> findByNameContainingIgnoreCaseAndIpAddressContainingAndPageCountGreaterThanEqual(

@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-// Apache POI imports for Excel export
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -69,7 +68,7 @@ public class PrinterService {
                         printer.setModel(model);
                     }
 
-
+                    // Now call getTonerLevel and getPageCount with the retrieved model
                     Integer tonerLevel = snmpService.getTonerLevel(printer.getIpAddress(), printer.getModel());
                     if (tonerLevel != null) {
                         printer.setTonerLevel(tonerLevel);
@@ -108,7 +107,7 @@ public class PrinterService {
                 String name = snmpService.getPrinterName(printer.getIpAddress());
                 String serialNumber = snmpService.getSerialNumber(printer.getIpAddress());
                 String manufacturer= snmpService.getManufacturer(printer.getIpAddress());
-                String model= snmpService.getModel(printer.getIpAddress());
+                String model= snmpService.getModel(printer.getIpAddress()); // Retrieve model first
 
                 if (name != null) {
                     printer.setName(name);
@@ -123,7 +122,7 @@ public class PrinterService {
                     printer.setModel(model);
                 }
 
-
+                // Now call getTonerLevel and getPageCount with the retrieved model
                 Integer tonerLevel = snmpService.getTonerLevel(printer.getIpAddress(), printer.getModel());
                 if (tonerLevel != null) {
                     printer.setTonerLevel(tonerLevel);
@@ -240,7 +239,7 @@ public class PrinterService {
     public List<Printer> getFilteredPrinters(String searchTerm, String searchType, String filterType, Integer minToner, Integer minPages) {
         List<Printer> printers = printerRepository.findAll(); // Start with all printers
 
-
+        // Apply search term
         if (searchTerm != null && !searchTerm.isEmpty()) {
             String lowerCaseSearchTerm = searchTerm.toLowerCase();
             if ("name".equals(searchType)) {
@@ -270,6 +269,7 @@ public class PrinterService {
             }
         }
 
+        // Apply filters
         if ("lowToner".equals(filterType)) {
             printers = printers.stream()
                     .filter(p -> p.getTonerLevel() != null && p.getTonerLevel() < 20) // Example threshold
@@ -280,6 +280,7 @@ public class PrinterService {
                     .collect(Collectors.toList());
         }
 
+        // Apply minToner and minPages filters
         if (minToner != null) {
             printers = printers.stream()
                     .filter(p -> p.getTonerLevel() != null && p.getTonerLevel() >= minToner)
@@ -293,7 +294,6 @@ public class PrinterService {
 
         return printers;
     }
-
     public byte[] exportPrintersToExcel() throws IOException {
         List<Printer> printers = printerRepository.findAll();
 
@@ -308,12 +308,14 @@ public class PrinterService {
                 cell.setCellValue(headers[i]);
             }
 
+            // Populate data rows
             int rowNum = 1;
             for (Printer printer : printers) {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(printer.getId());
                 row.createCell(1).setCellValue(printer.getIpAddress());
                 row.createCell(2).setCellValue(printer.getName());
+                // Handle potential nulls for tonerLevel and pageCount
                 if (printer.getTonerLevel() != null) {
                     row.createCell(3).setCellValue(printer.getTonerLevel());
                 } else {

@@ -6,12 +6,8 @@ import org.snmp4j.Snmp;
 import org.snmp4j.TransportMapping;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
-import org.snmp4j.smi.Address;
-import org.snmp4j.smi.OID;
-import org.snmp4j.smi.OctetString;
-import org.snmp4j.smi.VariableBinding;
+import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
-import org.snmp4j.smi.UdpAddress;
 
 import org.springframework.stereotype.Service;
 
@@ -46,9 +42,13 @@ public class SnmpService {
 
     private String getSnmpValue(String ipAddress, OID oid) {
         Snmp snmp = null;
+        TransportMapping transport = null;
         try {
-            Address targetAddress = new UdpAddress(ipAddress + "/161");
+            transport = new DefaultUdpTransportMapping();
+            snmp = new Snmp(transport);
+            transport.listen();
 
+            Address targetAddress = GenericAddress.parse("udp:" + ipAddress + "/161");
             CommunityTarget target = new CommunityTarget();
             target.setCommunity(new OctetString("public"));
             target.setAddress(targetAddress);
@@ -56,23 +56,21 @@ public class SnmpService {
             target.setTimeout(1500);
             target.setVersion(SnmpConstants.version2c);
 
-            TransportMapping transport = new DefaultUdpTransportMapping();
-            snmp = new Snmp(transport);
-            transport.listen();
-
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(oid));
             pdu.setType(PDU.GET);
 
             ResponseEvent responseEvent = snmp.send(pdu, target);
+
             if (responseEvent != null && responseEvent.getResponse() != null) {
-                VariableBinding vb = responseEvent.getResponse().get(0);
-                if (vb != null && vb.getOid().equals(oid)) {
-                    return vb.getVariable().toString();
+                PDU responsePDU = responseEvent.getResponse();
+                if (responsePDU.getVariableBindings().size() > 0) {
+                    return responsePDU.getVariableBindings().get(0).getVariable().toString();
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error during SNMP request to " + ipAddress + ": " + e.getMessage());
+            System.err.println("SNMP IOException for " + ipAddress + " and OID " + oid + ": " + e.getMessage());
+
         } finally {
             if (snmp != null) {
                 try {
@@ -81,23 +79,32 @@ public class SnmpService {
                     System.err.println("Error closing SNMP session: " + e.getMessage());
                 }
             }
+            if (transport != null) {
+                try {
+                    transport.close();
+                } catch (IOException e) {
+                    System.err.println("Error closing SNMP transport: " + e.getMessage());
+                }
+            }
         }
         return null;
     }
 
     public String getPrinterName(String ipAddress) {
         String name = getSnmpValue(ipAddress, SYS_NAME_OID);
-        if (name == null || name.isEmpty() || name.equals("null")) { // If sysName is empty or "null", try hrDeviceDescr
+        if (name == null || name.isEmpty() || name.equals("null")) {
             name = getSnmpValue(ipAddress, HR_DEVICE_DESCR_OID);
         }
-        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+        if (name != null && name.equals("null")) {
             name = null;
         }
         return name;
     }
 
+
     public Integer getTonerLevel(String ipAddress, String model) {
         if (model != null && model.toLowerCase().contains("ecosys p3145dn")) {
+            // For ECOSYS P3145dn, calculate percentage from actual and capacity
             String actualValueStr = getSnmpValue(ipAddress, KYOCERA_TONER_LEVEL_ACTUAL_OID);
             String capacityValueStr = getSnmpValue(ipAddress, KYOCERA_TONER_LEVEL_CAPACITY_OID);
 
@@ -133,7 +140,6 @@ public class SnmpService {
         }
     }
 
-
     public Integer getPageCount(String ipAddress, String model) {
         OID pageCountOid = null;
 
@@ -141,12 +147,10 @@ public class SnmpService {
             if (model.toLowerCase().contains("hp laserjet pro m404dn") || model.toLowerCase().contains("hp laserjet pro m501dn")) {
                 pageCountOid = new OID("1.3.6.1.2.1.43.10.2.1.4.1.1");
             } else if (model.toLowerCase().contains("ecosys p3145dn")) {
-                pageCountOid = new OID("1.3.6.1.2.1.43.10.2.1.4");
+                pageCountOid = new OID("1.3.6.1.4.1.1347.43.10.1.1.12.1.1");
             } else if (model.toLowerCase().contains("hp laserjet m406")) {
                 pageCountOid = new OID("1.3.6.1.4.1.11.2.3.9.4.2.1.1.16.4.1.1.2.0");
-            }/*else {
-                pageCountOid = new OID("1.3.6.1.2.1.43.10.2.1.4.1.1");
-            }*/
+            }
         }
 
         if (pageCountOid == null) {
@@ -168,15 +172,9 @@ public class SnmpService {
         return null;
     }
 
-    /**
-     * Retrieves the printer serial number using SNMP.
-     *
-     * @param ipAddress The IP address of the printer.
-     * @return The printer's serial number as a String, or null if not found.
-     */
     public String getSerialNumber(String ipAddress) {
         String name = getSnmpValue(ipAddress, SERIAL_NUMBER_OID);
-        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+        if (name != null && name.equals("null")) {
             name = null;
         }
         return name;
@@ -184,7 +182,7 @@ public class SnmpService {
 
     public String getManufacturer(String ipAddress) {
         String name = getSnmpValue(ipAddress, MANUFACTURER_OID);
-        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+        if (name != null && name.equals("null")) {
             name = null;
         }
         return name;
@@ -192,7 +190,7 @@ public class SnmpService {
 
     public String getModel(String ipAddress) {
         String name = getSnmpValue(ipAddress, MODEL_OID);
-        if (name != null && name.equals("null")) { // Handle "null" as string from some agents
+        if (name != null && name.equals("null")) {
             name = null;
         }
         return name;
