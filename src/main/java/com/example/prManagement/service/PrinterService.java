@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.Collection; // Added import for Collection
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -23,7 +25,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
-
+import java.util.Map;
 
 @Service
 public class PrinterService {
@@ -49,7 +51,6 @@ public class PrinterService {
         for (Printer printer : printers) {
             executor.submit(() -> {
                 try {
-                    // Refresh printer data using SNMP
                     String name = snmpService.getPrinterName(printer.getIpAddress());
                     String serialNumber = snmpService.getSerialNumber(printer.getIpAddress());
                     String manufacturer= snmpService.getManufacturer(printer.getIpAddress());
@@ -68,7 +69,6 @@ public class PrinterService {
                         printer.setModel(model);
                     }
 
-                    // Now call getTonerLevel and getPageCount with the retrieved model
                     Integer tonerLevel = snmpService.getTonerLevel(printer.getIpAddress(), printer.getModel());
                     if (tonerLevel != null) {
                         printer.setTonerLevel(tonerLevel);
@@ -161,7 +161,7 @@ public class PrinterService {
                 try {
                     ipsScannedCount.incrementAndGet();
                     InetAddress inetAddress = InetAddress.getByName(ipAddress);
-                    if (inetAddress.isReachable(1000)) { // 1-second timeout
+                    if (inetAddress.isReachable(1000)) { // 1-second
                         String name = snmpService.getPrinterName(ipAddress);
                         if (name != null) {
                             Optional<Printer> existingPrinter = printerRepository.findByIpAddress(ipAddress);
@@ -169,7 +169,6 @@ public class PrinterService {
                                 Printer newPrinter = new Printer();
                                 newPrinter.setIpAddress(ipAddress);
                                 newPrinter.setName(name);
-                                // Retrieve model before getting toner level and page count
                                 String model = snmpService.getModel(ipAddress);
                                 newPrinter.setModel(model);
 
@@ -182,10 +181,8 @@ public class PrinterService {
                                 System.out.println("Discovered and added printer: " + newPrinter.getName() + " at " + newPrinter.getIpAddress());
                             } else {
                                 System.out.println("Printer already exists: " + ipAddress);
-                                // Optionally, update existing printer data here as well
                                 Printer printer = existingPrinter.get();
                                 printer.setName(name);
-                                // Retrieve model before getting toner level and page count
                                 String model = snmpService.getModel(ipAddress);
                                 printer.setModel(model);
 
@@ -236,73 +233,20 @@ public class PrinterService {
         return discoveryInProgress;
     }
 
-    public List<Printer> getFilteredPrinters(String searchTerm, String searchType, String filterType, Integer minToner, Integer minPages) {
-        List<Printer> printers = printerRepository.findAll(); // Start with all printers
-
-        // Apply search term
-        if (searchTerm != null && !searchTerm.isEmpty()) {
-            String lowerCaseSearchTerm = searchTerm.toLowerCase();
-            if ("name".equals(searchType)) {
-                printers = printers.stream()
-                        .filter(p -> p.getName() != null && p.getName().toLowerCase().contains(lowerCaseSearchTerm))
-                        .collect(Collectors.toList());
-            }
-            else if ("ipAddress".equals(searchType)) {
-                printers = printers.stream()
-                        .filter(p -> p.getIpAddress() != null && p.getIpAddress().contains(lowerCaseSearchTerm))
-                        .collect(Collectors.toList());
-            }
-            else if ("manufacturer".equals(searchType)) {
-                printers = printers.stream()
-                        .filter(p -> p.getManufacturer() != null && p.getManufacturer().toLowerCase().contains(lowerCaseSearchTerm))
-                        .collect(Collectors.toList());
-            }
-            else if ("model".equals(searchType)) {
-                printers = printers.stream()
-                        .filter(p -> p.getModel() != null && p.getModel().toLowerCase().contains(lowerCaseSearchTerm))
-                        .collect(Collectors.toList());
-            }
-            else if ("serialNumber".equals(searchType)) {
-                printers = printers.stream()
-                        .filter(p -> p.getSerialNumber() != null && p.getSerialNumber().toLowerCase().contains(lowerCaseSearchTerm))
-                        .collect(Collectors.toList());
-            }
-        }
-
-        // Apply filters
-        if ("lowToner".equals(filterType)) {
-            printers = printers.stream()
-                    .filter(p -> p.getTonerLevel() != null && p.getTonerLevel() < 20) // Example threshold
-                    .collect(Collectors.toList());
-        } else if ("highPageCount".equals(filterType)) {
-            printers = printers.stream()
-                    .filter(p -> p.getPageCount() != null && p.getPageCount() > 10000) // Example threshold
-                    .collect(Collectors.toList());
-        }
-
-        // Apply minToner and minPages filters
-        if (minToner != null) {
-            printers = printers.stream()
-                    .filter(p -> p.getTonerLevel() != null && p.getTonerLevel() >= minToner)
-                    .collect(Collectors.toList());
-        }
-        if (minPages != null) {
-            printers = printers.stream()
-                    .filter(p -> p.getPageCount() != null && p.getPageCount() >= minPages)
-                    .collect(Collectors.toList());
-        }
-
-        return printers;
+    public boolean isRefreshInProgress() {
+        return refreshInProgress;
     }
-    public byte[] exportPrintersToExcel() throws IOException {
-        List<Printer> printers = printerRepository.findAll();
 
+
+    // Refactored method to export a given list of printers to Excel
+    public byte[] exportPrintersToExcel(List<Printer> printersToExport) throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Printers");
 
             // Create header row
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"ID", "IP Address", "Name", "Toner Level", "Page Count", "Last Refresh Time"};
+            // Added Serial Number, Manufacturer, Model columns
+            String[] headers = {"ID", "IP Address", "Name", "Toner Level", "Page Count", "Serial Number", "Manufacturer", "Model", "Last Refresh Time"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -310,11 +254,11 @@ public class PrinterService {
 
             // Populate data rows
             int rowNum = 1;
-            for (Printer printer : printers) {
+            for (Printer printer : printersToExport) {
                 Row row = sheet.createRow(rowNum++);
-                row.createCell(0).setCellValue(printer.getId());
+                row.createCell(0).setCellValue(printer.getId() != null ? printer.getId() : -1); // Use -1 or another indicator for new/unknown
                 row.createCell(1).setCellValue(printer.getIpAddress());
-                row.createCell(2).setCellValue(printer.getName());
+                row.createCell(2).setCellValue(printer.getName() != null ? printer.getName() : "N/A");
                 // Handle potential nulls for tonerLevel and pageCount
                 if (printer.getTonerLevel() != null) {
                     row.createCell(3).setCellValue(printer.getTonerLevel());
@@ -326,15 +270,143 @@ public class PrinterService {
                 } else {
                     row.createCell(4).setCellValue("N/A");
                 }
+                row.createCell(5).setCellValue(printer.getSerialNumber() != null ? printer.getSerialNumber() : "N/A");
+                row.createCell(6).setCellValue(printer.getManufacturer() != null ? printer.getManufacturer() : "N/A");
+                row.createCell(7).setCellValue(printer.getModel() != null ? printer.getModel() : "N/A");
                 if (printer.getLastRefreshTime() != null) {
-                    row.createCell(5).setCellValue(printer.getLastRefreshTime().toString());
+                    row.createCell(8).setCellValue(printer.getLastRefreshTime().toString());
                 } else {
-                    row.createCell(5).setCellValue("N/A");
+                    row.createCell(8).setCellValue("N/A");
                 }
             }
 
             workbook.write(outputStream);
             return outputStream.toByteArray();
         }
+    }
+
+    // Existing method, now calls the refactored one to export all printers
+    public byte[] exportPrintersToExcel() throws IOException {
+        List<Printer> allPrinters = printerRepository.findAll();
+        return exportPrintersToExcel(allPrinters);
+    }
+
+    // New method to export printers based on a list of IP addresses
+    public byte[] exportPrintersByIpAddressesToExcel(List<String> ipAddresses) throws IOException {
+        List<Printer> printersToExport = new ArrayList<>();
+
+        for (String ipAddress : ipAddresses) {
+            Optional<Printer> existingPrinter = printerRepository.findByIpAddress(ipAddress);
+            if (existingPrinter.isPresent()) {
+                printersToExport.add(existingPrinter.get());
+            } else {
+                // If IP doesn't exist, create a placeholder Printer object
+                Printer newPrinter = new Printer();
+                newPrinter.setIpAddress(ipAddress);
+                // Other fields will remain null and be displayed as "N/A" in Excel
+                printersToExport.add(newPrinter);
+            }
+        }
+        return exportPrintersToExcel(printersToExport);
+    }
+
+
+    public List<Printer> getFilteredPrinters(String searchTerm, String searchType, String filterType, Integer minToner, Integer minPages) {
+        List<Printer> printers = printerRepository.findAll();
+
+        if (searchTerm != null && !searchTerm.isEmpty()) {
+            String lowerCaseSearchTerm = searchTerm.toLowerCase();
+            printers = printers.stream()
+                    .filter(printer -> {
+                        switch (searchType) {
+                            case "name":
+                                return printer.getName() != null && printer.getName().toLowerCase().contains(lowerCaseSearchTerm);
+                            case "ipAddress":
+                                return printer.getIpAddress() != null && printer.getIpAddress().contains(lowerCaseSearchTerm);
+                            case "serialNumber":
+                                return printer.getSerialNumber() != null && printer.getSerialNumber().toLowerCase().contains(lowerCaseSearchTerm);
+                            case "manufacturer":
+                                return printer.getManufacturer() != null && printer.getManufacturer().toLowerCase().contains(lowerCaseSearchTerm);
+                            case "model":
+                                return printer.getModel() != null && printer.getModel().toLowerCase().contains(lowerCaseSearchTerm);
+                            default:
+                                return false;
+                        }
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        if (!"none".equals(filterType)) {
+            printers = printers.stream()
+                    .filter(printer -> {
+                        boolean matchesFilter = false;
+                        switch (filterType) {
+                            case "tonerLow":
+                                matchesFilter = printer.getTonerLevel() != null && printer.getTonerLevel() < 20;
+                                break;
+                            case "tonerMedium":
+                                matchesFilter = printer.getTonerLevel() != null && printer.getTonerLevel() >= 20 && printer.getTonerLevel() < 50;
+                                break;
+                            case "tonerHigh":
+                                matchesFilter = printer.getTonerLevel() != null && printer.getTonerLevel() >= 50;
+                                break;
+                            case "pagesLow":
+                                matchesFilter = printer.getPageCount() != null && printer.getPageCount() < 10000;
+                                break;
+                            case "pagesMedium":
+                                matchesFilter = printer.getPageCount() != null && printer.getPageCount() >= 10000 && printer.getPageCount() < 50000;
+                                break;
+                            case "pagesHigh":
+                                matchesFilter = printer.getPageCount() != null && printer.getPageCount() >= 50000;
+                                break;
+                            case "lastRefresh24h":
+                                matchesFilter = printer.getLastRefreshTime() != null && printer.getLastRefreshTime().isAfter(LocalDateTime.now().minusHours(24));
+                                break;
+                            case "lastRefresh7d":
+                                matchesFilter = printer.getLastRefreshTime() != null && printer.getLastRefreshTime().isAfter(LocalDateTime.now().minusDays(7));
+                                break;
+                            case "lastRefresh30d":
+                                matchesFilter = printer.getLastRefreshTime() != null && printer.getLastRefreshTime().isAfter(LocalDateTime.now().minusDays(30));
+                                break;
+                        }
+                        return matchesFilter;
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        if (minToner != null) {
+            printers = printers.stream()
+                    .filter(printer -> printer.getTonerLevel() != null && printer.getTonerLevel() >= minToner)
+                    .collect(Collectors.toList());
+        }
+
+        if (minPages != null) {
+            printers = printers.stream()
+                    .filter(printer -> printer.getPageCount() != null && printer.getPageCount() >= minPages)
+                    .collect(Collectors.toList());
+        }
+
+        return printers;
+    }
+
+    public Map<String, Object> getDashboardStatistics() {
+        List<Printer> allPrinters = printerRepository.findAll();
+        long totalPrinters = allPrinters.size();
+
+        // Use a stream to count printers with low toner (e.g., < 20%)
+        long lowTonerPrinters = allPrinters.stream()
+                .filter(printer -> printer.getTonerLevel() != null && printer.getTonerLevel() < 20)
+                .count();
+
+        // Use a stream to count printers with a high page count (e.g., >= 50,000)
+        long highPageCountPrinters = allPrinters.stream()
+                .filter(printer -> printer.getPageCount() != null && printer.getPageCount() >= 50000)
+                .count();
+
+        return Map.of(
+                "totalPrinters", totalPrinters,
+                "lowTonerPrinters", lowTonerPrinters,
+                "highPageCountPrinters", highPageCountPrinters
+        );
     }
 }

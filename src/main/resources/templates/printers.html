@@ -170,216 +170,181 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 10.5v6m0 0l-3-3m3 3l3-3m-9 3h6m-9-1.5a4.5 4.5 0 01-1.414 3.182A4.5 4.5 0 019 19.5h6a4.5 4.5 0 011.414-.414M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
                 </svg>
             </a>
-            <span class="button-label text-gray-700">Export</span>
+            <span class="button-label text-gray-700">Export All</span>
+        </div>
+
+        <div class="flex flex-col items-start gap-1 p-4 bg-white rounded-lg shadow-inner mt-4 w-full">
+            <label for="ipAddressesToExport" class="block text-sm font-semibold text-gray-700 mb-1">
+                Export Specific Printers by IP Address (comma or newline separated):
+            </label>
+            <textarea id="ipAddressesToExport" rows="4"
+                      class="w-full p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"
+                      placeholder="e.g., 192.168.1.100, 192.168.1.101&#10;192.168.1.102"></textarea>
+            <div class="flex flex-col items-center mt-3 w-full">
+                <button type="button" id="exportSelectedButton"
+                        class="sophisticated-button green w-24 h-24 sm:w-auto sm:h-auto px-6 py-3">
+                    <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 10.5v6m0 0l-3-3m3 3l3-3m-9 3h6m-9-1.5a4.5 4.5 0 01-1.414 3.182A4.5 4.5 0 019 19.5h6a4.5 4.5 0 011.414-.414M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
+                    </svg>
+                </button>
+                <span class="button-label text-gray-700 mt-2">Export Selected</span>
+            </div>
         </div>
     </div>
 
     <div class="mb-8 p-6 bg-soft-gray border border-gray-200 rounded-lg shadow-sm">
         <form id="filterForm" th:action="@{/printers}" method="get" class="grid grid-cols-1 gap-6 items-end lg:grid-cols-2">
-
-            <div class="lg:col-span-2"> <label for="searchTerm" class="block text-sm font-semibold text-gray-700 mb-1">Search:</label>
-                <div class="flex items-end gap-2"> <div class="relative flex-grow flex">
-                    <div class="select-wrapper">
-                        <select id="searchType" name="searchType"
-                                class="block w-fit p-2.5 border border-gray-300 rounded-l-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm">
-                            <option value="name" th:selected="${searchType == 'name' or searchType == null}">Name</option>
-                            <option value="ipAddress" th:selected="${searchType == 'ipAddress'}">IP Address</option>
-                            <option value="serialNumber" th:selected="${searchType == 'serialNumber'}">Serial Number</option>
-                            <option value="manufacturer" th:selected="${searchType == 'manufacturer'}">Manufacturer</option>
-                            <option value="model" th:selected="${searchType == 'model'}">Model</option>
-                        </select>
+            <div class="lg:col-span-2">
+                <label for="searchTerm" class="block text-sm font-semibold text-gray-700 mb-1">Search:</label>
+                <div class="flex items-end gap-2">
+                    <div class="relative flex-grow flex">
+                        <div class="select-wrapper">
+                            <select id="searchType" name="searchType" class="block w-fit p-2.5 border border-gray-300 rounded-l-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm">
+                                <option value="name" th:selected="${searchType == 'name' or searchType == null}">Name</option>
+                                <option value="ipAddress" th:selected="${searchType == 'ipAddress'}">IP Address</option>
+                                <option value="serialNumber" th:selected="${searchType == 'serialNumber'}">Serial Number</option>
+                                <option value="manufacturer" th:selected="${searchType == 'manufacturer'}">Manufacturer</option>
+                                <option value="model" th:selected="${searchType == 'model'}">Model</option>
+                            </select>
+                        </div>
+                        <input type="text" id="searchTerm" name="searchTerm" th:value="${searchTerm}" placeholder="Search by Name, IP, Serial No., Manufacturer or Model" oninput="toggleClearButton('searchTerm')" class="flex-grow p-2.5 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"/>
+                        <button type="button" id="clearSearch" onclick="clearInput('searchTerm')" class="ml-2 p-2.5 bg-gray-200 rounded-md text-dark-gray-600 hover:bg-gray-300 transition duration-150 ease-in-out shadow-sm" style="display: none;">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
-                    <input type="text" id="searchTerm" name="searchTerm" th:value="${searchTerm}" placeholder="Search by Name, IP, Serial No., Manufacturer or Model"
-                           oninput="toggleClearButton('searchTerm')"
-                           class="flex-grow p-2.5 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm -ml-px"/>
-                </div>
-                    <button type="submit"
-                            class="flex-shrink-0 w-10 h-10 p-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700
-                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150
-                                   flex items-center justify-center cursor-pointer">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </button>
-                    <button type="button" onclick="clearAndSubmit('searchTerm')"
-                            class="flex-shrink-0 w-10 h-10 p-2 bg-gray-500 text-white rounded-md shadow-md hover:bg-gray-600
-                                   focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150
-                                   flex items-center justify-center cursor-pointer"
-                            id="clearSearchTerm" th:style="${searchTerm != null and !searchTerm.isEmpty()} ? 'display: flex;' : 'display: none;'">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                    <button type="button" onclick="clearAllFilters()"
-                            class="flex-shrink-0 w-10 h-10 p-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600
-                                   focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150
-                                   flex items-center justify-center cursor-pointer">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
                 </div>
             </div>
 
-            <div class="lg:col-span-2 flex items-end gap-4 mt-2 lg:mt-0">
-                <div class="flex-grow">
-                    <label for="filterType" class="block text-sm font-semibold text-gray-700 mb-1">Filter:</label>
-                    <div class="relative flex">
-                        <div class="select-wrapper">
-                            <select id="filterType" name="filterType" onchange="toggleFilterInputs()"
-                                    class="block w-fit p-2.5 border border-gray-300 rounded-l-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm">
-                                <option value="none" th:selected="${filterType == 'none' or filterType == null}">None</option>
-                                <option value="toner" th:selected="${filterType == 'toner'}">Min Toner Level</option>
-                                <option value="pages" th:selected="${filterType == 'pages'}">Min Page Count</option>
-                                <option value="both" th:selected="${filterType == 'both'}">Toner & Pages</option>
-                            </select>
-                        </div>
-                        <div id="tonerInputContainer" class="flex-grow"
-                             th:classappend="${filterType == 'toner' or filterType == 'both'} ? 'block' : 'hidden'">
-                            <div class="relative">
-                                <input type="number" id="minToner" name="minToner" th:value="${minToner}" min="0" max="100"
-                                       placeholder="Min Toner %"
-                                       oninput="toggleClearButton('minToner')"
-                                       class="w-full p-2.5 pr-10 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm -ml-px"/>
-                                <button type="button" onclick="clearAndSubmit('minToner')"
-                                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
-                                        id="clearMinToner" th:style="${minToner != null} ? 'display: flex;' : 'display: none;'">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </button>
-                            </div>
-                        </div>
+            <div class="select-wrapper w-full">
+                <label for="filterType" class="block text-sm font-semibold text-gray-700 mb-1">Filter by Quick Status:</label>
+                <select id="filterType" name="filterType" onchange="toggleFilterInputs()" class="block w-full p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm">
+                    <option value="none" th:selected="${filterType == 'none' or filterType == null}">No Filter</option>
+                    <option value="tonerLow" th:selected="${filterType == 'tonerLow'}">Toner &lt; 20%</option>
+                    <option value="tonerMedium" th:selected="${filterType == 'tonerMedium'}">Toner 20-50%</option>
+                    <option value="tonerHigh" th:selected="${filterType == 'tonerHigh'}">Toner &gt; 50%</option>
+                    <option value="pagesLow" th:selected="${filterType == 'pagesLow'}">Pages &lt; 10k</option>
+                    <option value="pagesMedium" th:selected="${filterType == 'pagesMedium'}">Pages 10k-50k</option>
+                    <option value="pagesHigh" th:selected="${filterType == 'pagesHigh'}">Pages &gt; 50k</option>
+                    <option value="lastRefresh24h" th:selected="${filterType == 'lastRefresh24h'}">Last Refresh &lt; 24h</option>
+                    <option value="lastRefresh7d" th:selected="${filterType == 'lastRefresh7d'}">Last Refresh &lt; 7 days</option>
+                    <option value="lastRefresh30d" th:selected="${filterType == 'lastRefresh30d'}">Last Refresh &lt; 30 days</option>
+                </select>
+            </div>
 
-                        <div id="pagesInputContainer" class="flex-grow"
-                             th:classappend="${filterType == 'pages' or filterType == 'both'} ? 'block' : 'hidden'">
-                            <div class="relative">
-                                <input type="number" id="minPages" name="minPages" th:value="${minPages}" min="0"
-                                       placeholder="Min Page Count"
-                                       oninput="toggleClearButton('minPages')"
-                                       class="w-full p-2.5 pr-10 border border-gray-300 rounded-r-md focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm -ml-px"/>
-                                <button type="button" onclick="clearAndSubmit('minPages')"
-                                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
-                                        id="clearMinPages" th:style="${minPages != null} ? 'display: flex;' : 'display: none;'">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div id="tonerFilterGroup" class="relative" style="display: none;">
+                <label for="minToner" class="block text-sm font-semibold text-gray-700 mb-1">Min Toner Level (%):</label>
+                <input type="number" id="minToner" name="minToner" th:value="${minToner}" oninput="toggleClearButton('minToner')"
+                       class="w-full p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"
+                       min="0" max="100" placeholder="e.g., 20"/>
+                <button type="button" id="clearMinToner" onclick="clearInput('minToner')" class="absolute right-2.5 bottom-2.5 p-1 bg-gray-200 rounded-md text-dark-gray-600 hover:bg-gray-300 transition duration-150 ease-in-out shadow-sm" style="display: none;">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div id="pagesFilterGroup" class="relative" style="display: none;">
+                <label for="minPages" class="block text-sm font-semibold text-gray-700 mb-1">Min Page Count:</label>
+                <input type="number" id="minPages" name="minPages" th:value="${minPages}" oninput="toggleClearButton('minPages')"
+                       class="w-full p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:ring-secondary-blue focus:border-secondary-blue text-gray-800 transition duration-150 ease-in-out shadow-sm"
+                       min="0" placeholder="e.g., 10000"/>
+                <button type="button" id="clearMinPages" onclick="clearInput('minPages')" class="absolute right-2.5 bottom-2.5 p-1 bg-gray-200 rounded-md text-dark-gray-600 hover:bg-gray-300 transition duration-150 ease-in-out shadow-sm" style="display: none;">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="flex gap-4 lg:col-span-2">
+                <button type="submit"
+                        class="flex-1 px-6 py-3 bg-primary-blue text-white font-semibold rounded-lg shadow-md hover:bg-secondary-blue transition duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-secondary-blue focus:ring-opacity-50">
+                    Apply Filters
+                </button>
+                <button type="button" onclick="clearAllFilters()"
+                        class="sophisticated-button red flex-shrink-0 w-12 h-12 flex items-center justify-center p-0 rounded-full shadow-md hover:shadow-lg transition duration-200 ease-in-out">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
             </div>
         </form>
     </div>
 
-    <form id="discoverForm" th:action="@{/discoverPrinters}" method="post" class="hidden"></form>
-    <form id="refreshAllForm" th:action="@{/refreshPrinters}" method="post" class="hidden"></form>
 
-    <div class="bg-white shadow-custom-medium rounded-lg p-6 mt-8">
+    <div class="bg-white shadow-custom-medium rounded-xl border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full border-collapse divide-y divide-gray-200">
-                <thead class="bg-gray-100 border-b-2 border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">IP Address</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Toner Level</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Page Count</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Serial Number</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Manufacturer</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Model</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Last Refreshed</th>
-                    <th class="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Toner Level</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page Count</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacturer</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Refresh</th>
+                    <th scope="col" class="relative px-6 py-3">
+                        <span class="sr-only">Actions</span>
+                    </th>
                 </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                <tr th:each="printer : ${printers}" class="bg-white hover:bg-gray-50 transition duration-150 ease-in-out">
-                    <td th:text="${printer.id}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-                    <td th:text="${printer.ipAddress}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800 font-mono"></td>
-                    <td th:text="${printer.name}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-                    <td th:class="(${printer.tonerLevel} != null and ${printer.tonerLevel} &lt; 20) ? 'px-5 py-4 whitespace-nowrap text-sm font-bold text-red-500' : 'px-5 py-4 whitespace-nowrap text-sm text-gray-800'" th:text="${(printer.tonerLevel != null) ? (printer.tonerLevel + '%') : 'N/A'}"></td>
-                    <td th:text="${(printer.pageCount != null) ? #numbers.formatInteger(printer.pageCount, 0, 'POINT') : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-                    <td th:text="${printer.serialNumber != null ? printer.serialNumber : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-                    <td th:text="${printer.manufacturer != null ? printer.manufacturer : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-                    <td th:text="${printer.model != null ? printer.model : 'N/A'}" class="px-5 py-4 whitespace-nowrap text-sm text-gray-800"></td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <span th:if="${printer.lastRefreshTime}" th:text="${#temporals.format(printer.lastRefreshTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
-                        <span th:unless="${printer.lastRefreshTime}">N/A</span>
+                <tbody class="bg-white divide-y divide-gray-200">
+                <tr th:each="printer : ${printers}">
+                    <td th:text="${printer.id}" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"></td>
+                    <td th:text="${printer.ipAddress}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"></td>
+                    <td th:text="${printer.name}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <span th:if="${printer.tonerLevel != null}" th:text="${printer.tonerLevel + '%'}"></span>
+                        <span th:if="${printer.tonerLevel == null}">N/A</span>
                     </td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm text-gray-800">
-                        <form th:action="@{/refreshPrinter}" method="post" class="inline-block">
-                            <input type="hidden" name="id" th:value="${printer.id}" />
-                            <input type="hidden" name="searchTerm" th:value="${searchTerm}" />
-                            <input type="hidden" name="searchType" th:value="${searchType}" />
-                            <input type="hidden" name="filterType" th:value="${filterType}" />
-                            <input type="hidden" name="minToner" th:value="${minToner}" />
-                            <input type="hidden" name="minPages" th:value="${minPages}" />
-                            <button type="submit"
-                                    class="px-3 py-1 bg-green-500 text-white rounded-md text-xs font-semibold hover:bg-green-600
-                                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                Refresh
-                            </button>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <span th:if="${printer.pageCount != null}" th:text="${printer.pageCount}"></span>
+                        <span th:if="${printer.pageCount == null}">N/A</span>
+                    </td>
+                    <td th:text="${printer.serialNumber}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"></td>
+                    <td th:text="${printer.manufacturer}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"></td>
+                    <td th:text="${printer.model}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <span th:if="${printer.lastRefreshTime != null}" th:text="${#temporals.format(printer.lastRefreshTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                        <span th:if="${printer.lastRefreshTime == null}">N/A</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <form th:action="@{/printers/refresh/{id}(id=${printer.id})}" method="get" style="display: inline;">
+                            <button type="submit" class="text-indigo-600 hover:text-indigo-900 ml-4">Refresh</button>
+                        </form>
+                        <form th:action="@{/printers/delete/{id}(id=${printer.id})}" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this printer?');">
+                            <button type="submit" class="text-red-600 hover:text-red-900 ml-4">Delete</button>
                         </form>
                     </td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(printers)}">
-                    <td colspan="10" class="px-5 py-4 text-center text-gray-500 italic">No printers found. Click 'Discover' to scan your network!</td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
+
+<form id="discoverForm" th:action="@{/discoverPrinters}" method="post" style="display: none;">
+    <input type="hidden" name="subnetPrefix" id="hiddenSubnetPrefix"/>
+</form>
+
+<form id="refreshAllForm" th:action="@{/refreshAllPrinters}" method="get" style="display: none;"></form>
 
 <script th:inline="javascript">
     /*<![CDATA[*/
 
-    const discoverForm = document.getElementById('discoverForm');
-    const discoverButton = document.getElementById('discoverButton');
-    const buttonText = document.getElementById('buttonText'); // Now targets the span *outside* the button
-    const progressOverlay = discoverButton ? discoverButton.querySelector('#progressOverlay') : null;
-    let progressInterval;
-
-    if (discoverForm) {
-        discoverForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            // Get values from the three subnet parts
-            const subnetPart1 = document.getElementById('subnetPart1').value;
-            const subnetPart2 = document.getElementById('subnetPart2').value;
-            const subnetPart3 = document.getElementById('subnetPart3').value;
-
-            // Validate subnet parts
-            if (!isValidSubnetPart(subnetPart1) || !isValidSubnetPart(subnetPart2) || !isValidSubnetPart(subnetPart3)) {
-                alert('Please enter valid numbers between 1 and 255 for all subnet parts.');
-                return;
-            }
-
-            // Construct the subnet prefix
-            const subnetPrefix = `${subnetPart1}.${subnetPart2}.${subnetPart3}.`;
-
-            if (discoverButton) discoverButton.disabled = true;
-            if (buttonText) buttonText.textContent = '0%'; // Update the external span
-            updateProgressBar(0);
-
-            const formData = new FormData();
-            formData.append('subnetPrefix', subnetPrefix); // Append the constructed subnetPrefix
-
-            fetch(this.action, {
-                method: this.method,
-                body: formData
-            })
-                .then(response => {
-                    if (response.ok) {
-                        progressInterval = setInterval(getDiscoveryProgress, 500);
-                    } else {
-                        console.error('Failed to start discovery. Server responded with:', response.status);
-                        alert('Failed to start discovery. Check server logs for details.');
-                        resetDiscoveryUI();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error initiating discovery:', error);
-                    alert('An error occurred while starting discovery.');
-                    resetDiscoveryUI();
-                });
-        });
+    // Message handling
+    const message = [[${message}]];
+    if (message) {
+        alert(message);
     }
 
-    function isValidSubnetPart(value) {
-        const num = parseInt(value, 10);
-        return !isNaN(num) && num >= 1 && num <= 255;
+    // Progress bar for discovery
+    let progressInterval;
+    const discoverButton = document.getElementById('discoverButton');
+    const progressOverlay = document.getElementById('progressOverlay');
+    const buttonText = document.getElementById('buttonText');
+
+    function updateProgressBar(progress) {
+        if (progressOverlay) {
+            progressOverlay.style.background = `conic-gradient(var(--tw-primary-blue) ${progress}%, transparent ${progress}%)`;
+        }
     }
 
     function getDiscoveryProgress() {
@@ -391,129 +356,39 @@
                 return response.json();
             })
             .then(data => {
-                const progress = data.progress;
-                const inProgress = data.inProgress;
-
-                updateProgressBar(progress);
-
-                if (discoverButton && discoverButton.disabled && buttonText) {
-                    if (inProgress || progress < 100) {
-                        buttonText.textContent = `${progress}%`;
+                if (data.inProgress) {
+                    if (discoverButton) discoverButton.disabled = true;
+                    if (buttonText) {
+                        if (data.progress > 0 && data.progress < 100) {
+                            buttonText.textContent = `${data.progress}%`;
+                        } else if (data.progress === 0) {
+                            buttonText.textContent = 'Starting...';
+                        }
                     }
-                }
-
-                if (!inProgress && progress === 100) {
+                    updateProgressBar(data.progress);
+                } else {
                     clearInterval(progressInterval);
-                    console.log('Discovery complete. Refreshing table...');
-                    window.location.href = '/printers';
-                } else if (!inProgress && progress < 100) {
-                    clearInterval(progressInterval);
-                    console.log('Discovery completed prematurely. Refreshing table...');
-                    window.location.href = '/printers';
+                    resetDiscoveryUI();
+                    // Optionally refresh the page or part of it to show new printers
+                    window.location.reload();
                 }
             })
             .catch(error => {
                 console.error('Error fetching discovery progress:', error);
                 clearInterval(progressInterval);
-                alert('An error occurred while fetching discovery progress. Check console for details.');
                 resetDiscoveryUI();
             });
     }
 
-    function updateProgressBar(progress) {
-        if (progressOverlay) {
-            progressOverlay.style.setProperty('--progress', `${progress}%`);
-        }
-    }
-
     function resetDiscoveryUI() {
         if (discoverButton) discoverButton.disabled = false;
-        if (buttonText) {
-            buttonText.textContent = 'Discover';
-        }
+        if (buttonText) buttonText.textContent = 'Discover';
         updateProgressBar(0);
-        clearInterval(progressInterval);
     }
 
-    // --- New JavaScript for Filter Dropdown ---
-    function toggleFilterInputs() {
-        const filterType = document.getElementById('filterType').value;
-        const tonerInputContainer = document.getElementById('tonerInputContainer');
-        const pagesInputContainer = document.getElementById('pagesInputContainer');
-        const minTonerInput = document.getElementById('minToner');
-        const minPagesInput = document.getElementById('minPages');
-
-        tonerInputContainer.classList.add('hidden');
-        pagesInputContainer.classList.add('hidden');
-
-        // Clear values when hiding, to prevent submitting hidden values
-        minTonerInput.value = '';
-        minPagesInput.value = '';
-        toggleClearButton('minToner'); // Hide clear button for toner
-        toggleClearButton('minPages'); // Hide clear button for pages
-
-        if (filterType === 'toner') {
-            tonerInputContainer.classList.remove('hidden');
-        } else if (filterType === 'pages') {
-            pagesInputContainer.classList.remove('hidden');
-        } else if (filterType === 'both') {
-            tonerInputContainer.classList.remove('hidden');
-            pagesInputContainer.classList.remove('hidden');
-        }
-    }
-
-    // --- JavaScript for Filter Clear Buttons ---
-    function toggleClearButton(inputId) {
-        const inputElement = document.getElementById(inputId);
-        const clearButtonId = 'clear' + inputId.charAt(0).toUpperCase() + inputId.slice(1);
-        const clearButton = document.getElementById(clearButtonId);
-
-        if (inputElement && clearButton) {
-            // For searchTerm, check if value is not empty to show 'x' button
-            if (inputId === 'searchTerm') {
-                clearButton.style.display = (inputElement.value.trim() !== '') ? 'flex' : 'none';
-            } else { // For minToner and minPages, check if value is not empty (e.g., if filter is active and value is set)
-                clearButton.style.display = (inputElement.value !== '') ? 'flex' : 'none';
-            }
-        }
-    }
-
-    function clearAndSubmit(inputId) {
-        const inputElement = document.getElementById(inputId);
-        if (inputElement) {
-            inputElement.value = '';
-            // If clearing search term, reset search type to default (name)
-            if (inputId === 'searchTerm') {
-                document.getElementById('searchType').value = 'name';
-            }
-            toggleClearButton(inputId);
-            document.getElementById('filterForm')?.submit();
-        }
-    }
-
-    function clearAllFilters() {
-        document.getElementById('searchTerm').value = '';
-        document.getElementById('searchType').value = 'name';
-
-        document.getElementById('filterType').value = 'none'; // Reset filter dropdown
-        document.getElementById('minToner').value = '';
-        document.getElementById('minPages').value = '';
-
-        // Reset subnet inputs
-        document.getElementById('subnetPart1').value = '10';
-        document.getElementById('subnetPart2').value = '50';
-        document.getElementById('subnetPart3').value = '95';
-
-        // Immediately hide the inputs and clear buttons without waiting for submit
-        toggleFilterInputs(); // Call to hide inputs and clear values
-        // Manually trigger toggleClearButton for searchTerm as its container changed
-        toggleClearButton('searchTerm');
-
-        document.getElementById('filterForm')?.submit();
-    }
-
-    // Initial check on page load for ongoing discovery and filter input visibility
-    window.onload = function() {
+    // Initial check for discovery progress on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check discovery progress
         fetch('/discoveryProgress')
             .then(response => {
                 if (!response.ok) {
@@ -548,7 +423,111 @@
         toggleFilterInputs();
         document.getElementById('minToner')?.dispatchEvent(new Event('input'));
         document.getElementById('minPages')?.dispatchEvent(new Event('input'));
-    };
+    });
+
+    // Subnet discovery form submission
+    document.getElementById('discoverButton')?.closest('div.flex-col').querySelector('button')?.addEventListener('click', function(event) {
+        event.preventDefault();
+        const subnetPart1 = document.getElementById('subnetPart1').value;
+        const subnetPart2 = document.getElementById('subnetPart2').value;
+        const subnetPart3 = document.getElementById('subnetPart3').value;
+        const subnetPrefix = `${subnetPart1}.${subnetPart2}.${subnetPart3}.`;
+        document.getElementById('hiddenSubnetPrefix').value = subnetPrefix;
+        document.getElementById('discoverForm').submit();
+    });
+
+    // Filter clear buttons logic
+    function toggleClearButton(inputId) {
+        const input = document.getElementById(inputId);
+        const clearButton = document.getElementById('clear' + inputId.charAt(0).toUpperCase() + inputId.slice(1));
+        if (input && clearButton) {
+            clearButton.style.display = input.value ? 'block' : 'none';
+        }
+    }
+
+    function clearInput(inputId) {
+        document.getElementById(inputId).value = '';
+        toggleClearButton(inputId); // Hide the button after clearing
+        if (inputId === 'searchTerm') {
+            document.getElementById('filterForm').submit(); // Re-submit to clear search results
+        }
+    }
+
+    function toggleFilterInputs() {
+        const filterType = document.getElementById('filterType').value;
+        const tonerFilterGroup = document.getElementById('tonerFilterGroup');
+        const pagesFilterGroup = document.getElementById('pagesFilterGroup');
+
+        if (tonerFilterGroup) {
+            tonerFilterGroup.style.display = (filterType === 'none' || filterType.startsWith('toner')) ? 'block' : 'none';
+        }
+        if (pagesFilterGroup) {
+            pagesFilterGroup.style.display = (filterType === 'none' || filterType.startsWith('pages')) ? 'block' : 'none';
+        }
+
+        // Hide specific min/max inputs if a quick filter is selected
+        const minTonerInput = document.getElementById('minToner');
+        const minPagesInput = document.getElementById('minPages');
+
+        if (minTonerInput) {
+            minTonerInput.style.display = (filterType === 'none') ? 'block' : 'none';
+        }
+        if (minPagesInput) {
+            minPagesInput.style.display = (filterType === 'none') ? 'block' : 'none';
+        }
+
+        // Ensure clear buttons for minToner and minPages are toggled correctly
+        toggleClearButton('minToner');
+        toggleClearButton('minPages');
+    }
+
+    function clearAllFilters() {
+        document.getElementById('searchTerm').value = '';
+        document.getElementById('searchType').value = 'name';
+        document.getElementById('filterType').value = 'none';
+        document.getElementById('minToner').value = '';
+        document.getElementById('minPages').value = '';
+
+        toggleClearButton('searchTerm');
+        toggleClearButton('minToner');
+        toggleClearButton('minPages');
+        toggleFilterInputs(); // Ensure display is correct after clearing filters
+
+        document.getElementById('filterForm').submit();
+    }
+
+
+    // New JavaScript for exporting selected printers
+    document.getElementById('exportSelectedButton').addEventListener('click', function() { //
+        const ipAddressesTextArea = document.getElementById('ipAddressesToExport'); //
+        const ipAddressesRaw = ipAddressesTextArea.value; //
+        const ipAddresses = ipAddressesRaw.split(/[\n,]/) // Split by newline or comma
+                                            .map(ip => ip.trim()) // Trim whitespace from each IP
+                                            .filter(ip => ip !== ''); // Remove empty strings
+
+        if (ipAddresses.length === 0) { //
+            alert('Please enter at least one IP address to export.'); //
+            return; //
+        }
+
+        // Join the IP addresses with commas for the request parameter
+        const ipAddressesParam = ipAddresses.join(','); //
+
+        // Create a hidden form to submit the request
+        const form = document.createElement('form'); //
+        form.method = 'POST'; //
+        form.action = '/printers/download/excel/selected'; //
+
+        const hiddenInput = document.createElement('input'); //
+        hiddenInput.type = 'hidden'; //
+        hiddenInput.name = 'ipAddresses'; //
+        hiddenInput.value = ipAddressesParam; //
+        form.appendChild(hiddenInput); //
+
+        document.body.appendChild(form); //
+        form.submit(); //
+        document.body.removeChild(form); // Clean up the form after submission
+    });
 
     /*]]>*/
 </script>

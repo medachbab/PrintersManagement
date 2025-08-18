@@ -1,4 +1,3 @@
-// src/main/java/com/example/prManagement/repository/PrinterRepository.java
 package com.example.prManagement.repository;
 
 import com.example.prManagement.model.Printer;
@@ -6,10 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 public interface PrinterRepository extends JpaRepository<Printer, Long> {
     Optional<Printer> findByIpAddress(String ipAddress);
+
+    // to find printers by a list of IP addresses
+    List<Printer> findByIpAddressIn(Collection<String> ipAddresses);
 
     /*List<Printer> findByNameContainingIgnoreCaseAndTonerLevelGreaterThanEqualAndPageCountGreaterThanEqual(
             String name, Integer minToner, Integer minPages);
