@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.progress-gradient {
+  background: conic-gradient(var(--tw-primary-blue) var(--progress, 0%), transparent var(--progress, 0%));
+  transition: background 0.1s linear;
+}
+
+/* blur */
+@layer utilities {
+  .backdrop-blur-xs {
+    backdrop-filter: blur(4px);
+  }
+  
+  .backdrop-blur-sm {
+    backdrop-filter: blur(8px);
+  }
+  
+  .backdrop-blur-md {
+    backdrop-filter: blur(12px);
+  }
+  
+  .backdrop-blur-lg {
+    backdrop-filter: blur(16px);
+  }
+  
+  .backdrop-blur-xl {
+    backdrop-filter: blur(20px);
+  }
+}
