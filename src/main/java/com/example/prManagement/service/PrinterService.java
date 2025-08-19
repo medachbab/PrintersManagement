@@ -409,4 +409,7 @@ public class PrinterService {
                 "highPageCountPrinters", highPageCountPrinters
         );
     }
+    public void deleteSinglePrinter(Long id) {
+        printerRepository.deleteById(id);
+    }
 }

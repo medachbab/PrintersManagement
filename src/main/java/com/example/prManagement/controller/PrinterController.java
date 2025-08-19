@@ -100,4 +100,15 @@ public class PrinterController {
     public Map<String, Object> getDashboardStats() {
         return printerService.getDashboardStatistics();
     }
+
+    @PostMapping("/printers/refresh/{id}")
+    public void refreshSinglePrinter(@PathVariable Long id) {
+        printerService.refreshSinglePrinter(id);
+    }
+
+
+    @DeleteMapping("/printers/delete/{id}")
+    public void deletePrinter(@PathVariable Long id) {
+        printerService.deleteSinglePrinter(id);
+    }
 }

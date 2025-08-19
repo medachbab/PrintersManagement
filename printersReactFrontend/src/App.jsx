@@ -121,12 +121,14 @@ useEffect(() => {
   };
 
   const handleDeletePrinter = async (id) => {
-    if (window.confirm('Are you sure you want to delete this printer?')) {
+    if (window.confirm("Are you sure you want to delete this printer?")) {
       try {
-        await fetch(`http://localhost:8080/printers/delete/${id}`, { method: 'POST' });
+        await fetch(`http://localhost:8080/printers/delete/${id}`, { method: 'DELETE' });
+        alert(`Printer with ID ${id} deleted successfully.`);
         fetchPrinters();
-      } catch (e) {
-                console.error("Failed to delete printer:", e);
+      } catch (error) {
+        console.error(`Error deleting printer ${id}:`, error);
+        alert('Failed to delete printer.');
       }
     }
   };
@@ -217,7 +219,7 @@ useEffect(() => {
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="text-3xl font-bold text-gray-800 mb-2">{stats.highPageCountPrinters}</div>
-                <div className="text-sm text-gray-600">Online</div>
+                <div className="text-sm text-gray-600">high page count</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="text-3xl font-bold text-gray-800 mb-2">{stats.lowTonerPrinters}</div>
