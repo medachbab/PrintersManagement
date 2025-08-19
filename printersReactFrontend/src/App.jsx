@@ -8,6 +8,50 @@ import ExportPrinters from './components/ExportPrinters';
 import FilterSection from './components/FilterSection';
 
 function App() {
+  const SemiCircularProgress = ({ value, max, title, color, icon }) => {
+  const percentage = title === "Total Printers" ? 100 : (value / max) * 100;
+  const radius = 45;
+  const circumference = radius * Math.PI;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="relative w-32 h-20 mx-auto">
+        <svg className="w-full h-full" viewBox="0 0 100 50">
+          {/* Background path */}
+          <path
+            className="text-gray-200"
+            strokeWidth="10"
+            stroke="currentColor"
+            fill="transparent"
+            d="M 10,50 A 40,40 0 1,1 90,50"
+          />
+          {/* Progress path */}
+          <path
+            className={`${color} transition-all duration-300 ease-in-out`}
+            strokeWidth="10"
+            strokeLinecap="round"
+            stroke="currentColor"
+            fill="transparent"
+            d="M 10,50 A 40,40 0 1,1 90,50"
+            style={{
+              strokeDasharray: circumference,
+              strokeDashoffset: strokeDashoffset
+            }}
+          />
+        </svg>
+        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center"> {/* Added space-y-2 here */}
+          
+          <span className="text-2xl font-bold text-gray-800">{value}</span>
+        </div>
+      </div>
+      <div className="mt-2">
+        <div className="text-sm font-semibold text-gray-600">{title}</div>
+        <span className="text-lg">{icon}</span>
+      </div>
+    </div>
+  );
+};
   const [printers, setPrinters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -139,106 +183,125 @@ useEffect(() => {
         return (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-12 text-center min-h-[600px]">
 
-            {/* Navigation Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {/* Main Navigation Cards */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-6 hover:scale-105 transition-transform duration-300">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4 uppercase tracking-wider">Main Menu</h3>
-                <div className="flex flex-col space-y-3">
-                  <button
-                    onClick={() => setView('table')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-blue-600 text-white border-blue-500 shadow-blue-600/20 hover:bg-blue-500 hover:border-blue-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-sm tracking-wide">🖨️ All Printers</span>
-                  </button>
-                  <button
-                    onClick={() => setView('dashboard')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-green-600 text-white border-green-500 shadow-green-600/20 hover:bg-green-500 hover:border-green-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-sm tracking-wide">📊 Dashboard</span>
-                  </button>
-                  <button
-                    onClick={() => setView('discover')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-blue-600 text-white border-blue-500 shadow-blue-600/20 hover:bg-blue-500 hover:border-blue-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-sm tracking-wide">🔍 Discover</span>
-                  </button>
-                  <button
-                    onClick={() => setView('export')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-green-600 text-white border-green-500 shadow-green-600/20 hover:bg-green-500 hover:border-green-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-sm tracking-wide">📤 Export</span>
-                  </button>
+            {/* Main Content Grid */}
+            <div className="flex flex-col space-y-8">
+              {/* System Info - Now Horizontal */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-6">
+                <h3 className="text-lg font-semibold text-gray-700 mb-4 uppercase tracking-wider">System Status</h3>
+                <div>
+                  {statsLoading ? (
+                    <p>Loading stats...</p>
+                  ) : statsError ? (
+                    <p className="text-red-500">{statsError}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <SemiCircularProgress
+                        value={stats.totalPrinters}
+                        max={100}
+                        title="Total Printers"
+                        color="text-blue-500"
+                        icon="🖨️"
+                      />
+                      <SemiCircularProgress
+                        value={stats.highPageCountPrinters}
+                        max={stats.totalPrinters}
+                        title="High Page Count"
+                        color="text-yellow-500"
+                        icon="📄"
+                      />
+                      <SemiCircularProgress
+                        value={stats.lowTonerPrinters}
+                        max={stats.totalPrinters}
+                        title="Low Toner"
+                        color="text-red-500"
+                        icon="⚠️"
+                      />
+                      <SemiCircularProgress
+                        value={stats.unknownTonerLevelPrinters}
+                        max={stats.totalPrinters}
+                        title="Printers with unknown toner level"
+                        color="text-red-500"
+                        icon="⚠️"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Quick Model Filter */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-6 hover:scale-105 transition-transform duration-300">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4 uppercase tracking-wider">Quick Filters</h3>
-                <div className="flex flex-col space-y-2">
-                  <button
-                    onClick={() => handleModelFilter('HP LaserJet Pro M404dn')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-xs tracking-wide leading-tight">🖨️ HP LaserJet Pro M404dn</span>
-                  </button>
-                  <button
-                    onClick={() => handleModelFilter('HP LaserJet M406')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-xs tracking-wide leading-tight">🖨️ HP LaserJet M406</span>
-                  </button>
-                  <button
-                    onClick={() => handleModelFilter('ECOSYS P3145dn')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-xs tracking-wide leading-tight">🖨️ ECOSYS P3145dn</span>
-                  </button>
-                  <button
-                    onClick={() => handleModelFilter('HP LaserJet Pro M501dn')}
-                    className="w-full relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-5 py-2.5 cursor-pointer bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
-                  >
-                    <span className="font-medium text-xs tracking-wide leading-tight">🖨️ HP LaserJet Pro M501dn</span>
-                  </button>
+              {/* Navigation Grid - Below System Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-7xl mx-auto">
+                {/* Main Navigation Cards */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-6 h-full flex flex-col">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4 uppercase tracking-wider">Main Menu</h3>
+                  <div className="flex-1 flex flex-col justify-between space-y-3">
+                    <button
+                      onClick={() => setView('table')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-blue-600 text-white border-blue-500 shadow-blue-600/20 hover:bg-blue-500 hover:border-blue-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">🖨️ All Printers</span>
+                    </button>
+                    <button
+                      onClick={() => setView('dashboard')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-green-600 text-white border-green-500 shadow-green-600/20 hover:bg-green-500 hover:border-green-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">📊 Dashboard</span>
+                    </button>
+                    <button
+                      onClick={() => setView('discover')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-blue-600 text-white border-blue-500 shadow-blue-600/20 hover:bg-blue-500 hover:border-blue-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">🔍 Discover</span>
+                    </button>
+                    <button
+                      onClick={() => setView('export')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-green-600 text-white border-green-500 shadow-green-600/20 hover:bg-green-500 hover:border-green-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">📤 Export</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Model Filter */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-6 h-full flex flex-col">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4 uppercase tracking-wider">Quick Filters</h3>
+                  <div className="flex-1 flex flex-col justify-between space-y-3">
+                    <button
+                      onClick={() => handleModelFilter('HP LaserJet Pro M404dn')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">🖨️ HP LaserJet Pro M404dn</span>
+                    </button>
+                    <button
+                      onClick={() => handleModelFilter('HP LaserJet M406')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">🖨️ HP LaserJet M406</span>
+                    </button>
+                    <button
+                      onClick={() => handleModelFilter('ECOSYS P3145dn')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">🖨️ ECOSYS P3145dn</span>
+                    </button>
+                    <button
+                      onClick={() => handleModelFilter('HP LaserJet Pro M501dn')}
+                      className="w-full h-[60px] relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-sm tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 px-5 bg-gray-600 text-white border-gray-500 shadow-gray-600/20 hover:bg-gray-500 hover:border-gray-400 hover:shadow-lg"
+                    >
+                      <span className="font-medium text-sm tracking-wide">🖨️ HP LaserJet Pro M501dn</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* System Info */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-6 hover:scale-105 transition-transform duration-300">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4 uppercase tracking-wider">System Status</h3>
-        <div className="space-y-4">
-          {statsLoading ? (
-            <p>Loading stats...</p>
-          ) : statsError ? (
-            <p className="text-red-500">{statsError}</p>
-          ) : (
-            <>
-              <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="text-3xl font-bold text-gray-800 mb-2">{stats.totalPrinters}</div>
-                <div className="text-sm text-gray-600">Total Printers</div>
+              {/* Bottom CTA */}
+              <div className="mt-12 text-center">
+                <button
+                  onClick={() => setView('table')}
+                  className="relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-lg tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-8 py-4 cursor-pointer bg-blue-800 text-white border-blue-700 shadow-blue-800/20 hover:bg-blue-700 hover:border-blue-600 hover:shadow-lg"
+                >
+                  <span className="font-medium text-lg tracking-wide">🚀 View All Printers</span>
+                </button>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="text-3xl font-bold text-gray-800 mb-2">{stats.highPageCountPrinters}</div>
-                <div className="text-sm text-gray-600">high page count</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="text-3xl font-bold text-gray-800 mb-2">{stats.lowTonerPrinters}</div>
-                <div className="text-sm text-gray-600">Low Toner</div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-            </div>
-
-            {/* Bottom CTA */}
-            <div className="mt-12 text-center">
-              <button
-                onClick={() => setView('table')}
-                className="relative overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1 active:translate-y-0 border border-transparent rounded-lg font-medium text-lg tracking-wide shadow-sm hover:shadow-md flex items-center justify-center gap-3 min-h-[44px] px-8 py-4 cursor-pointer bg-blue-800 text-white border-blue-700 shadow-blue-800/20 hover:bg-blue-700 hover:border-blue-600 hover:shadow-lg"
-              >
-                <span className="font-medium text-lg tracking-wide">🚀 View All Printers</span>
-              </button>
             </div>
           </div>
         );

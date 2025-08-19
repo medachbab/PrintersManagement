@@ -1,10 +1,59 @@
 import React, { useState, useEffect } from 'react';
 
+const CircularProgress = ({ value, max, title, color, icon }) => {
+  const percentage = title === "Total Printers" ? 100 : (value / max) * 100;
+  const circumference = 2 * Math.PI * 45; // 45 is the radius
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg">
+      <div className="relative w-48 h-48">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            className="text-gray-200"
+            strokeWidth="10"
+            stroke="currentColor"
+            fill="transparent"
+            r="45"
+            cx="50"
+            cy="50"
+          />
+          {/* Progress circle */}
+          <circle
+            className={`${color} transition-all duration-300 ease-in-out`}
+            strokeWidth="10"
+            stroke="currentColor"
+            fill="transparent"
+            r="45"
+            cx="50"
+            cy="50"
+            style={{
+              strokeDasharray: circumference,
+              strokeDashoffset: strokeDashoffset
+            }}
+          />
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-bold">{value}</span>
+          <span className="text-xl">{icon}</span>
+        </div>
+      </div>
+      <div className="mt-4 text-center">
+        <h3 className="text-xl font-semibold text-gray-700">{title}</h3>
+        <p className="text-gray-600">out of {max}</p>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalPrinters: 0,
     lowTonerPrinters: 0,
-    highPageCountPrinters: 0
+    highPageCountPrinters: 0,
+    unknownTonerLevelPrinters: 0 
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,32 +97,49 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 p-12 text-center min-h-[600px]">
-      <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-6">
-        📊 Printer Fleet Dashboard
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
+      <h2 className="text-3xl font-bold text-center mb-12">
+        📊 Printers Dashboard
       </h2>
-      <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-12">
-        Real-time metrics, charts, and key performance indicators for your printers, including toner levels, page counts, and status.
-      </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Total Printers Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-transform transform hover:scale-105">
-          <div className="text-5xl font-extrabold text-gray-800">{stats.totalPrinters}</div>
-          <div className="text-lg font-medium text-gray-500 mt-2">Total Printers</div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <CircularProgress
+          value={stats.totalPrinters}
+          max={100}
+          title="Total Printers"
+          color="text-blue-500"
+          icon="🖨️"
+        />
+        <CircularProgress
+          value={stats.lowTonerPrinters}
+          max={stats.totalPrinters}
+          title="Low Toner Printers"
+          color="text-red-500"
+          icon="⚠️"
+        />
+        <CircularProgress
+          value={stats.unknownTonerLevelPrinters}
+          max={stats.totalPrinters}
+          title="Printers with unknown toner level"
+          color="text-red-500"
+          icon="⚠️"
+        />
+        <CircularProgress
+          value={stats.highPageCountPrinters}
+          max={stats.totalPrinters}
+          title="High Page Count"
+          color="text-yellow-500"
+          icon="📄"
+        />
+      </div>
 
-        {/* Low Toner Printers Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-transform transform hover:scale-105">
-          <div className="text-5xl font-extrabold text-red-600">{stats.lowTonerPrinters}</div>
-          <div className="text-lg font-medium text-gray-500 mt-2">Printers with Low Toner</div>
-        </div>
-
-        {/* High Page Count Printers Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-transform transform hover:scale-105">
-          <div className="text-5xl font-extrabold text-yellow-600">{stats.highPageCountPrinters}</div>
-          <div className="text-lg font-medium text-gray-500 mt-2">Printers with High Page Count</div>
-        </div>
+      <div className="mt-12 p-6 bg-gray-50 rounded-lg">
+        <h3 className="text-xl font-semibold mb-4">Quick Summary</h3>
+        <ul className="list-disc list-inside space-y-2 text-gray-700">
+          <li>{stats.totalPrinters} total printers in the network</li>
+          <li>{stats.lowTonerPrinters} printers need toner replacement</li>
+          <li>{stats.highPageCountPrinters} printers have high page counts</li>
+        </ul>
       </div>
     </div>
   );

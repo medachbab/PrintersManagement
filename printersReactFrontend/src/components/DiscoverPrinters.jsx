@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 const DiscoverPrinters = ({ onDiscoveryComplete }) => {
   const [progress, setProgress] = useState(0);
   const [inProgress, setInProgress] = useState(false);
+  const [nprintersFound, setnprintersFound] = useState(0);
   const [subnetPrefix, setSubnetPrefix] = useState({ part1: '10', part2: '50', part3: '95' });
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -19,21 +20,15 @@ const DiscoverPrinters = ({ onDiscoveryComplete }) => {
           const data = await response.json();
           setProgress(data.progress);
           setInProgress(data.inProgress);
+          setnprintersFound(data.nprintersFound);
           
           if (!data.inProgress) {
+            setDiscoveredCount(nprintersFound); 
             clearInterval(intervalId);
-            try {
-              const printersResponse = await fetch('http://localhost:8080/printers');
-              if (printersResponse.ok) {
-                const printers = await printersResponse.json();
-                setDiscoveredCount(printers.length);
-                setShowSuccess(true);
-                setTimeout(() => setShowSuccess(false), 5000);
-              }
-            } catch (error) {
-              console.error("Failed to fetch printer count:", error);
-            }
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 5000);
             onDiscoveryComplete();
+
           }
         } catch (error) {
           console.error("Failed to fetch discovery progress:", error);
@@ -80,7 +75,7 @@ const DiscoverPrinters = ({ onDiscoveryComplete }) => {
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
           <div className="flex items-center justify-center gap-2 text-green-700">
             <span className="text-lg font-semibold">
-              Discovery Complete! Found {discoveredCount} printer{discoveredCount !== 1 ? 's' : ''} on your network.
+              printers found: {discoveredCount} printer{discoveredCount !== 1 ? 's' : ''} on your network.
             </span>
           </div>
         </div>
@@ -158,6 +153,9 @@ const DiscoverPrinters = ({ onDiscoveryComplete }) => {
               </div>
               <p className="text-sm text-gray-600">
                 {progress === 0 ? 'Initializing...' : `Scanning network... ${progress}%`}
+              </p>
+              <p className="text-sm font-semibold text-blue-600 mt-2">
+                🖨️ Found {nprintersFound} printer{nprintersFound > 1 ? 's' : ''} so far...
               </p>
             </div>
           )}

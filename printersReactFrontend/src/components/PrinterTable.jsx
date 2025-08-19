@@ -46,21 +46,29 @@ const PrinterTable = ({ printers, onRefresh, onDelete }) => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
-                                        <div className="w-24 bg-gray-200 rounded-full h-3 mr-3">
-                                            <div
-                                                className="h-3 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${printer.tonerLevel || 0}%`,
-                                                    backgroundColor: (printer.tonerLevel || 0) > 20 ? '#10b981' : (printer.tonerLevel || 0) > 10 ? '#f59e0b' : '#ef4444',
-                                                }}
-                                            ></div>
-                                        </div>
-                                        <span className={`text-sm font-semibold ${
-                                            (printer.tonerLevel || 0) > 20 ? 'text-emerald-600' : 
-                                            (printer.tonerLevel || 0) > 10 ? 'text-orange-600' : 'text-red-600'
-                                        }`}>
-                                            {printer.tonerLevel || 0}%
-                                        </span>
+                                        {printer.tonerLevel === -2 || printer.tonerLevel === null ? (
+                                            <span className="text-sm font-semibold text-gray-600">
+                                                Unknown
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <div className="w-24 bg-gray-200 rounded-full h-3 mr-3">
+                                                    <div
+                                                        className="h-3 rounded-full transition-all duration-300"
+                                                        style={{
+                                                            width: `${printer.tonerLevel || 0}%`,
+                                                            backgroundColor: (printer.tonerLevel || 0) > 20 ? '#10b981' : (printer.tonerLevel || 0) > 10 ? '#f59e0b' : '#ef4444',
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                <span className={`text-sm font-semibold ${
+                                                    (printer.tonerLevel || 0) > 20 ? 'text-emerald-600' : 
+                                                    (printer.tonerLevel || 0) > 10 ? 'text-orange-600' : 'text-red-600'
+                                                }`}>
+                                                    {printer.tonerLevel || 0}%
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">

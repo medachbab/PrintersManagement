@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +39,9 @@ public class PrinterService {
 
     private volatile int totalIpsToScan = 0;
     private AtomicInteger ipsScannedCount = new AtomicInteger(0);
+
     private volatile boolean discoveryInProgress = false;
+    private final AtomicInteger newPrintersFound = new AtomicInteger(0);
     private volatile boolean refreshInProgress = false;
 
     public List<Printer> getAllAndUpdatePrinters() {
@@ -150,6 +153,7 @@ public class PrinterService {
 
         discoveryInProgress = true;
         ipsScannedCount.set(0);
+        newPrintersFound.set(0);
         totalIpsToScan = endIp - startIp + 1;
         System.out.println("Starting network discovery for subnet: " + subnetPrefix);
 
@@ -178,6 +182,7 @@ public class PrinterService {
                                 newPrinter.setManufacturer(snmpService.getManufacturer(ipAddress));
                                 newPrinter.setLastRefreshTime(LocalDateTime.now());
                                 printerRepository.save(newPrinter);
+                                newPrintersFound.incrementAndGet();
                                 System.out.println("Discovered and added printer: " + newPrinter.getName() + " at " + newPrinter.getIpAddress());
                             } else {
                                 System.out.println("Printer already exists: " + ipAddress);
@@ -216,6 +221,9 @@ public class PrinterService {
             totalIpsToScan = 0;
             System.out.println("Network discovery complete.");
         }
+    }
+    public int getNumberOfNewPrinters() {
+        return newPrintersFound.get();
     }
 
     public int getDiscoveryProgressPercentage() {
@@ -395,7 +403,7 @@ public class PrinterService {
 
         // Use a stream to count printers with low toner (e.g., < 20%)
         long lowTonerPrinters = allPrinters.stream()
-                .filter(printer -> printer.getTonerLevel() != null && printer.getTonerLevel() < 20)
+                .filter(printer -> printer.getTonerLevel() != null && printer.getTonerLevel() != -2 && printer.getTonerLevel() < 20)
                 .count();
 
         // Use a stream to count printers with a high page count (e.g., >= 50,000)
@@ -403,10 +411,15 @@ public class PrinterService {
                 .filter(printer -> printer.getPageCount() != null && printer.getPageCount() >= 50000)
                 .count();
 
+        long unknownTonerLevelPrinters = allPrinters.stream()
+                .filter(printer -> printer.getTonerLevel() == null || printer.getTonerLevel() == -2)
+                .count();
+
         return Map.of(
                 "totalPrinters", totalPrinters,
                 "lowTonerPrinters", lowTonerPrinters,
-                "highPageCountPrinters", highPageCountPrinters
+                "highPageCountPrinters", highPageCountPrinters,
+                "unknownTonerLevelPrinters", unknownTonerLevelPrinters
         );
     }
     public void deleteSinglePrinter(Long id) {

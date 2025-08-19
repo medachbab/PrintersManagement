@@ -86,8 +86,9 @@ public class PrinterController {
     @GetMapping("/discoveryProgress")
     public Map<String, Object> getDiscoveryProgress() {
         int progress = printerService.getDiscoveryProgressPercentage();
+        int nprintersFound=printerService.getNumberOfNewPrinters();
         boolean inProgress = printerService.isDiscoveryInProgress();
-        return Map.of("progress", progress, "inProgress", inProgress);
+        return Map.of("progress", progress, "inProgress", inProgress, "nprintersFound", nprintersFound);
     }
 
     @GetMapping("/refreshProgress")
